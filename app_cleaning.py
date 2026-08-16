@@ -256,7 +256,7 @@ def render_branch_tab(branch_name, prefix):
                         adjusted_dt = get_adjusted_workday(target_dt, tw_holidays)
                         date_str = f"{month}/{day_val}"
                         if adjusted_dt != target_dt:
-                            date_str += f"\n(調日至{adjusted_dt.month}/{adjusted_dt.day})"
+                            date_str += f" (調日至{adjusted_dt.month}/{adjusted_dt.day})"
                     else:
                         date_str = "-"
 
@@ -274,10 +274,11 @@ def render_branch_tab(branch_name, prefix):
                             default_task = current_tasks[t_idx % len(current_tasks)]
                             t_idx += 1
 
-                    chosen_task = st.selectbox(f"工作_{idx}_{d_i}", options=current_tasks, index=current_tasks.index(default_task) if default_task in current_tasks else 0, key=f"task_{branch_name}_{idx}_{d_i}")
+                    # 移除繁瑣標題，改用清爽的下拉選單
+                    chosen_task = st.selectbox(f"工作_{idx}_{d_i}", options=current_tasks, index=current_tasks.index(default_task) if default_task in current_tasks else 0, key=f"task_{branch_name}_{idx}_{d_i}", label_visibility="collapsed")
                     
                     default_teacher = teacher_pool[(idx * 5 + d_i) % len(teacher_pool)]
-                    chosen_teacher = st.selectbox(f"老師_{idx}_{d_i}", teacher_options := (["主任"] + teacher_pool), index=teacher_options.index(default_teacher) if default_teacher in teacher_options else 0, key=f"tea_{branch_name}_{idx}_{d_i}")
+                    chosen_teacher = st.selectbox(f"老師_{idx}_{d_i}", teacher_options := (["主任"] + teacher_pool), index=teacher_options.index(default_teacher) if default_teacher in teacher_options else 0, key=f"tea_{branch_name}_{idx}_{d_i}", label_visibility="collapsed")
                 
                 row_dates.append(date_str)
                 row_tasks.append(chosen_task)
@@ -316,20 +317,20 @@ def render_branch_tab(branch_name, prefix):
         st.success(f"✅ 已成功儲存 {branch_name} {year_roc}年{month}月排班紀錄！")
 
     st.divider()
-    st.subheader("👁️ 月曆式即時預覽（完整 Fit 於視窗內）")
+    st.subheader("👁️ 月曆式完整即時預覽（符合視窗大小）")
     
-    # 建立乾淨、寬度適中的預覽呈現
-    preview_rows = []
+    # 建立真正的月曆檢視表格（橫向週一至週五，直向第一週至第四週）
+    calendar_preview_rows = []
     for rec in table_records:
-        for i, d_label in enumerate(['星期一', '星期二', '星期三', '星期四', '星期五']):
-            preview_rows.append({
-                "週次": rec["週次"],
-                "星期": d_label,
-                "日期": rec["日期"][i],
-                "清潔內容": rec["內容"][i],
-                "負責老師": rec["老師"][i]
-            })
-    st.dataframe(pd.DataFrame(preview_rows), use_container_width=True, height=280)
+        calendar_preview_rows.append({
+            "週次": rec["週次"],
+            "星期一": f"📅 {rec['日期'][0]}\n🧹 {rec['內容'][0]}\n👤 {rec['老師'][0]}",
+            "星期二": f"📅 {rec['日期'][1]}\n🧹 {rec['內容'][1]}\n👤 {rec['老師'][1]}",
+            "星期三": f"📅 {rec['日期'][2]}\n🧹 {rec['內容'][2]}\n👤 {rec['老師'][2]}",
+            "星期四": f"📅 {rec['日期'][3]}\n🧹 {rec['內容'][3]}\n👤 {rec['老師'][3]}",
+            "星期五": f"📅 {rec['日期'][4]}\n🧹 {rec['內容'][4]}\n👤 {rec['老師'][4]}"
+        })
+    st.dataframe(pd.DataFrame(calendar_preview_rows), use_container_width=True, height=250)
 
     st.divider()
     st.subheader(f"📥 匯出 {branch_name} 清潔輪值 Word 檔")
@@ -352,19 +353,18 @@ def render_branch_tab(branch_name, prefix):
         for h_idx, hist in enumerate(reversed(hist_list)):
             with st.expander(f"📜 [{hist['timestamp']}] {hist['title']}", expanded=False):
                 st.markdown(f"**備註內容：** {hist['notes']}")
-                h_preview_rows = []
+                h_cal_rows = []
                 for idx_r, r_val in hist['df'].iterrows():
                     days_k = ['一', '二', '三', '四', '五']
-                    days_name = ['星期一', '星期二', '星期三', '星期四', '星期五']
-                    for d_i, d_k in enumerate(days_k):
-                        h_preview_rows.append({
-                            "週次": r_val["週次"],
-                            "星期": days_name[d_i],
-                            "日期": r_val[f"{d_k}_0"],
-                            "清潔內容": r_val[f"{d_k}_1"],
-                            "負責老師": r_val[f"{d_k}_2"]
-                        })
-                st.dataframe(pd.DataFrame(h_preview_rows), use_container_width=True, height=220)
+                    h_cal_rows.append({
+                        "週次": r_val["週次"],
+                        "星期一": f"📅 {r_val['一_0']}\n🧹 {r_val['一_1']}\n👤 {r_val['一_2']}",
+                        "星期二": f"📅 {r_val['二_0']}\n🧹 {r_val['二_1']}\n👤 {r_val['二_2']}",
+                        "星期三": f"📅 {r_val['三_0']}\n🧹 {r_val['三_1']}\n👤 {r_val['三_2']}",
+                        "星期四": f"📅 {r_val['四_0']}\n🧹 {r_val['四_1']}\n👤 {r_val['四_2']}",
+                        "星期五": f"📅 {r_val['五_0']}\n🧹 {r_val['五_1']}\n👤 {r_val['五_2']}"
+                    })
+                st.dataframe(pd.DataFrame(h_cal_rows), use_container_width=True, height=220)
                 
                 h_doc_bytes = generate_cleaning_docx(branch_name, year_roc, month, hist['df'], hist['notes'])
                 st.download_button(
