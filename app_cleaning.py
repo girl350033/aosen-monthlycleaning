@@ -7,19 +7,13 @@ import io
 import html
 
 from openpyxl import Workbook
-from openpyxl.styles import (
-    Font,
-    Alignment,
-    Border,
-    Side,
-    PatternFill,
-)
-from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 
 
 # =========================================================
-# 頁面基本設定
+# 頁面設定
 # =========================================================
+
 st.set_page_config(
     page_title="澳森托嬰中心 月清潔輪值與表單管理系統",
     page_icon="🏫",
@@ -29,165 +23,176 @@ st.set_page_config(
 
 # =========================================================
 # 全站 CSS
-# 1. 減少頁面留白
-# 2. 排班五欄間距縮小
-# 3. Selectbox 高度加高、文字可顯示約兩行
-# 4. Expander 更緊湊
 # =========================================================
+
 st.markdown(
     """
 <style>
 
-/* ---------------------------------------------------------
-   整體頁面
---------------------------------------------------------- */
+/* ========================================
+   整體頁面縮減留白
+======================================== */
 
 .block-container {
-    padding-top: 1rem !important;
-    padding-bottom: 1rem !important;
-    padding-left: 1.2rem !important;
-    padding-right: 1.2rem !important;
+    padding-top: 0.7rem !important;
+    padding-bottom: 0.8rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
     max-width: 100% !important;
 }
 
-/* 標題間距 */
+
+/* ========================================
+   標題
+======================================== */
+
 h1 {
     margin-top: 0 !important;
-    margin-bottom: 0.7rem !important;
-}
-
-h2, h3, h4 {
-    margin-top: 0.4rem !important;
     margin-bottom: 0.45rem !important;
 }
 
-/* divider */
-hr {
-    margin-top: 0.7rem !important;
-    margin-bottom: 0.7rem !important;
+h2,
+h3,
+h4 {
+    margin-top: 0.25rem !important;
+    margin-bottom: 0.35rem !important;
 }
 
 
-/* ---------------------------------------------------------
-   Streamlit 橫向欄位
---------------------------------------------------------- */
+/* ========================================
+   分隔線
+======================================== */
+
+hr {
+    margin-top: 0.55rem !important;
+    margin-bottom: 0.55rem !important;
+}
+
+
+/* ========================================
+   五欄之間縮小
+======================================== */
 
 div[data-testid="stHorizontalBlock"] {
-    gap: 0.7rem !important;
-}
-
-/* 一般垂直元件間距 */
-div[data-testid="stVerticalBlock"] {
     gap: 0.55rem !important;
 }
 
 
-/* ---------------------------------------------------------
+/* ========================================
+   垂直元件間距
+======================================== */
+
+div[data-testid="stVerticalBlock"] {
+    gap: 0.45rem !important;
+}
+
+
+/* ========================================
    Expander
---------------------------------------------------------- */
+======================================== */
 
 div[data-testid="stExpander"] {
-    margin-bottom: 0.7rem !important;
+    margin-bottom: 0.55rem !important;
 }
 
 div[data-testid="stExpander"] details {
-    border-radius: 10px !important;
+    border-radius: 9px !important;
 }
 
 div[data-testid="stExpander"] summary {
-    padding-top: 0.45rem !important;
-    padding-bottom: 0.45rem !important;
+    padding-top: 0.4rem !important;
+    padding-bottom: 0.4rem !important;
     font-weight: 600 !important;
 }
 
 
-/* ---------------------------------------------------------
+/* ========================================
    Selectbox
---------------------------------------------------------- */
+======================================== */
 
-/* 整個 selectbox 高度 */
+/* 外框高度 */
 div[data-baseweb="select"] > div {
-    min-height: 58px !important;
+    min-height: 56px !important;
     height: auto !important;
     border-radius: 9px !important;
 }
 
-/* 已選取文字 */
-div[data-baseweb="select"] div {
+/* 已選取文字盡量顯示兩行 */
+div[data-baseweb="select"] span {
     white-space: normal !important;
     overflow: visible !important;
     text-overflow: unset !important;
-    line-height: 1.3 !important;
+    line-height: 1.28 !important;
+
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+
+    max-height: 2.7em !important;
 }
 
-/* 下拉項目的文字也允許換行 */
+/* 下拉選單內文字 */
 li[role="option"] {
     white-space: normal !important;
     height: auto !important;
-    min-height: 42px !important;
-    line-height: 1.35 !important;
+    min-height: 40px !important;
+    line-height: 1.3 !important;
 }
 
 
-/* ---------------------------------------------------------
-   輸入框
---------------------------------------------------------- */
-
-div[data-testid="stTextInput"] {
-    margin-bottom: 0.2rem !important;
-}
-
-
-/* ---------------------------------------------------------
+/* ========================================
    星期＋日期
---------------------------------------------------------- */
+======================================== */
 
 .day-header {
     display: flex;
     align-items: center;
-    gap: 7px;
-    margin-top: 2px;
-    margin-bottom: 4px;
-    min-height: 30px;
+    gap: 6px;
+    margin-top: 0;
+    margin-bottom: 3px;
+    min-height: 27px;
 }
 
 .day-name {
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 700;
     white-space: nowrap;
 }
 
 .day-date {
-    font-size: 14px;
-    color: #16823b;
-    background: #f5f7f7;
-    padding: 2px 7px;
+    font-size: 13px;
+    color: #12833b;
+    background-color: #f4f6f5;
+    padding: 2px 6px;
     border-radius: 6px;
     white-space: nowrap;
 }
 
 
-/* ---------------------------------------------------------
-   預覽表格
---------------------------------------------------------- */
+/* ========================================
+   即時預覽
+======================================== */
 
 .cleaning-preview-wrapper {
     width: 100%;
+    max-width: 100%;
     overflow: hidden;
+    margin-top: 4px;
 }
 
 .cleaning-preview-table {
     width: 100%;
+    max-width: 100%;
     table-layout: fixed;
     border-collapse: collapse;
     font-size: 13px;
-    background: white;
+    background-color: white;
 }
 
 .cleaning-preview-table th {
+    background-color: #f5f6f8;
     border: 1px solid #d9dce1;
-    background: #f5f6f8;
-    padding: 7px 5px;
+    padding: 6px 4px;
     text-align: center;
     vertical-align: middle;
     font-weight: 700;
@@ -195,12 +200,12 @@ div[data-testid="stTextInput"] {
 
 .cleaning-preview-table td {
     border: 1px solid #d9dce1;
-    padding: 7px 6px;
+    padding: 6px 5px;
     vertical-align: top;
-    white-space: normal;
-    word-break: break-word;
-    overflow-wrap: anywhere;
-    line-height: 1.4;
+
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
 }
 
 .cleaning-preview-table .week-col {
@@ -216,38 +221,39 @@ div[data-testid="stTextInput"] {
 
 .preview-date {
     font-weight: 700;
-    color: #16823b;
-    margin-bottom: 4px;
+    color: #12833b;
+    margin-bottom: 3px;
 }
 
 .preview-task {
-    margin-bottom: 5px;
-    color: #262730;
+    font-size: 13px;
+    line-height: 1.35;
+    margin-bottom: 4px;
 }
 
 .preview-teacher {
-    color: #666666;
     font-size: 12px;
+    color: #666666;
 }
 
 
-/* ---------------------------------------------------------
-   較小螢幕
---------------------------------------------------------- */
+/* ========================================
+   小螢幕再縮一點
+======================================== */
 
-@media (max-width: 1300px) {
+@media (max-width: 1400px) {
 
     .block-container {
-        padding-left: 0.7rem !important;
-        padding-right: 0.7rem !important;
+        padding-left: 0.6rem !important;
+        padding-right: 0.6rem !important;
     }
 
     div[data-testid="stHorizontalBlock"] {
-        gap: 0.4rem !important;
+        gap: 0.35rem !important;
     }
 
     .day-name {
-        font-size: 16px;
+        font-size: 15px;
     }
 
     .day-date {
@@ -259,9 +265,27 @@ div[data-testid="stTextInput"] {
         font-size: 11px;
     }
 
-    .cleaning-preview-table td {
-        padding: 5px 4px;
+    .preview-task {
+        font-size: 11px;
     }
+
+    .preview-teacher {
+        font-size: 10px;
+    }
+
+    .cleaning-preview-table td {
+        padding: 4px 3px;
+    }
+}
+
+
+/* ========================================
+   Tab 間距
+======================================== */
+
+div[data-testid="stTabs"] button {
+    padding-top: 0.45rem !important;
+    padding-bottom: 0.45rem !important;
 }
 
 </style>
@@ -287,6 +311,7 @@ DEFAULT_TASKS_A = [
     "掃地機器人/寢具表填寫/規劃戶外活動計畫表與回報(髒水倒掉、洗淨、補充乾淨水、清潔液1:50)",
 ]
 
+
 DEFAULT_TASKS_B = [
     "酵素熱水倒水槽(幼兒洗手水槽、門口小水槽、洗屁屁區、備餐區，使用2/3桶熱水配半杓酵素攪拌均勻)",
     "樓梯間掃地拖地(包含玻璃檯面灰塵清潔)",
@@ -301,10 +326,6 @@ DEFAULT_TASKS_B = [
 ]
 
 
-# =========================================================
-# Session State 初始化
-# =========================================================
-
 DEFAULT_TEACHERS = [
     "主任",
     "均宜",
@@ -315,6 +336,11 @@ DEFAULT_TEACHERS = [
     "Candy",
     "Panda",
 ]
+
+
+# =========================================================
+# Session State
+# =========================================================
 
 for prefix, tasks_init in [
     ("A", DEFAULT_TASKS_A),
@@ -338,33 +364,36 @@ for prefix, tasks_init in [
 
 
 # =========================================================
-# 假日調整
+# 日期函式
 # =========================================================
+
+def is_workday(target_date, tw_holidays):
+
+    return (
+        target_date.weekday() < 5
+        and target_date not in tw_holidays
+    )
+
 
 def get_adjusted_workday(target_date, tw_holidays):
     """
-    如果遇週末或國定假日：
-    優先往前找最近一個工作日。
+    若日期遇到假日或週末，
+    優先往前找到最近工作日。
     """
-    if (
-        target_date.weekday() < 5
-        and target_date not in tw_holidays
-    ):
+
+    if is_workday(target_date, tw_holidays):
         return target_date
 
     curr = target_date - datetime.timedelta(days=1)
 
-    while (
-        curr.weekday() >= 5
-        or curr in tw_holidays
-    ):
+    while not is_workday(curr, tw_holidays):
         curr -= datetime.timedelta(days=1)
 
     return curr
 
 
 # =========================================================
-# Excel 產生
+# Excel
 # =========================================================
 
 def generate_cleaning_excel(
@@ -379,13 +408,14 @@ def generate_cleaning_excel(
 
     wb = Workbook()
     ws = wb.active
+
     ws.title = f"{month}月清潔輪值"
 
-    # -----------------------------------------------------
-    # 頁面設定
-    # -----------------------------------------------------
-
     ws.sheet_view.showGridLines = False
+
+    # -----------------------------------------------------
+    # 列印設定
+    # -----------------------------------------------------
 
     ws.page_setup.orientation = "landscape"
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
@@ -394,7 +424,10 @@ def generate_cleaning_excel(
 
     ws.sheet_properties.pageSetUpPr.fitToPage = True
 
-    ws.freeze_panes = "C4"
+    ws.page_margins.left = 0.25
+    ws.page_margins.right = 0.25
+    ws.page_margins.top = 0.4
+    ws.page_margins.bottom = 0.4
 
     # -----------------------------------------------------
     # 樣式
@@ -413,28 +446,23 @@ def generate_cleaning_excel(
     )
 
     title_fill = PatternFill(
-        "solid",
+        fill_type="solid",
         fgColor="D9EAF7",
     )
 
     header_fill = PatternFill(
-        "solid",
+        fill_type="solid",
         fgColor="EDEDED",
     )
 
     date_fill = PatternFill(
-        "solid",
-        fgColor="F7FBF8",
+        fill_type="solid",
+        fgColor="F3F8F4",
     )
 
     teacher_fill = PatternFill(
-        "solid",
+        fill_type="solid",
         fgColor="FFF7E6",
-    )
-
-    sign_fill = PatternFill(
-        "solid",
-        fgColor="FFFFFF",
     )
 
     # -----------------------------------------------------
@@ -480,38 +508,33 @@ def generate_cleaning_excel(
         "星期五",
     ]
 
-    header_row = 3
-
-    for col_idx, header in enumerate(
-        headers,
-        start=1,
-    ):
+    for col_idx, header in enumerate(headers, start=1):
 
         cell = ws.cell(
-            row=header_row,
+            row=3,
             column=col_idx,
             value=header,
         )
 
         cell.font = Font(
             name="微軟正黑體",
-            size=11,
+            size=10,
             bold=True,
         )
 
         cell.fill = header_fill
-
         cell.border = border
 
         cell.alignment = Alignment(
             horizontal="center",
             vertical="center",
+            wrap_text=True,
         )
 
-    ws.row_dimensions[header_row].height = 25
+    ws.row_dimensions[3].height = 25
 
     # -----------------------------------------------------
-    # 排班資料
+    # 排班內容
     # -----------------------------------------------------
 
     row_num = 4
@@ -522,9 +545,7 @@ def generate_cleaning_excel(
 
         start_row = row_num
 
-        week_name = record["週次"]
-
-        # 合併週次
+        # 合併週次欄
         ws.merge_cells(
             start_row=start_row,
             start_column=1,
@@ -535,12 +556,12 @@ def generate_cleaning_excel(
         week_cell = ws.cell(
             row=start_row,
             column=1,
-            value=week_name,
+            value=record["週次"],
         )
 
         week_cell.font = Font(
             name="微軟正黑體",
-            size=11,
+            size=10,
             bold=True,
         )
 
@@ -550,9 +571,6 @@ def generate_cleaning_excel(
             wrap_text=True,
         )
 
-        week_cell.border = border
-
-        # 四種資料列
         row_types = [
             ("日期", "_0"),
             ("清潔內容", "_1"),
@@ -560,17 +578,14 @@ def generate_cleaning_excel(
             ("簽名", None),
         ]
 
-        for offset, (
-            row_label,
-            suffix,
-        ) in enumerate(row_types):
+        for offset, (label, suffix) in enumerate(row_types):
 
             current_row = start_row + offset
 
             label_cell = ws.cell(
                 row=current_row,
                 column=2,
-                value=row_label,
+                value=label,
             )
 
             label_cell.font = Font(
@@ -587,28 +602,19 @@ def generate_cleaning_excel(
                 wrap_text=True,
             )
 
-            if row_label == "日期":
+            if label == "日期":
                 label_cell.fill = date_fill
 
-            elif row_label == "執行老師":
+            elif label == "執行老師":
                 label_cell.fill = teacher_fill
 
-            elif row_label == "簽名":
-                label_cell.fill = sign_fill
-
-            # 星期一～星期五
-            for i, dk in enumerate(
-                days_k,
-                start=3,
-            ):
+            for i, dk in enumerate(days_k, start=3):
 
                 if suffix is None:
                     value = ""
 
                 else:
-                    value = record[
-                        f"{dk}{suffix}"
-                    ]
+                    value = record[f"{dk}{suffix}"]
 
                 cell = ws.cell(
                     row=current_row,
@@ -618,7 +624,7 @@ def generate_cleaning_excel(
 
                 cell.font = Font(
                     name="微軟正黑體",
-                    size=10,
+                    size=9,
                 )
 
                 cell.border = border
@@ -629,42 +635,33 @@ def generate_cleaning_excel(
                     wrap_text=True,
                 )
 
-                if row_label == "日期":
+                if label == "日期":
+
                     cell.fill = date_fill
+
                     cell.font = Font(
                         name="微軟正黑體",
-                        size=10,
+                        size=9,
                         bold=True,
                         color="00843D",
                     )
 
-                elif row_label == "執行老師":
+                elif label == "執行老師":
+
                     cell.fill = teacher_fill
 
-                elif row_label == "簽名":
-                    cell.fill = sign_fill
+        # 合併格也補框線
+        for r in range(start_row, start_row + 4):
+            for c in range(1, 8):
+                ws.cell(r, c).border = border
 
         # 列高
-        ws.row_dimensions[start_row].height = 25
-        ws.row_dimensions[start_row + 1].height = 65
+        ws.row_dimensions[start_row].height = 24
+        ws.row_dimensions[start_row + 1].height = 70
         ws.row_dimensions[start_row + 2].height = 28
         ws.row_dimensions[start_row + 3].height = 38
 
         row_num += 4
-
-    # -----------------------------------------------------
-    # 修正合併格框線
-    # -----------------------------------------------------
-
-    for row in ws.iter_rows(
-        min_row=4,
-        max_row=row_num - 1,
-        min_col=1,
-        max_col=7,
-    ):
-
-        for cell in row:
-            cell.border = border
 
     # -----------------------------------------------------
     # 備註
@@ -687,8 +684,7 @@ def generate_cleaning_excel(
 
     notes_cell.font = Font(
         name="微軟正黑體",
-        size=10,
-        color="333333",
+        size=9,
     )
 
     notes_cell.alignment = Alignment(
@@ -705,31 +701,25 @@ def generate_cleaning_excel(
     # 欄寬
     # -----------------------------------------------------
 
-    ws.column_dimensions["A"].width = 10
+    ws.column_dimensions["A"].width = 9
     ws.column_dimensions["B"].width = 11
 
-    for col in [
-        "C",
-        "D",
-        "E",
-        "F",
-        "G",
-    ]:
-        ws.column_dimensions[col].width = 27
+    for col_letter in ["C", "D", "E", "F", "G"]:
+        ws.column_dimensions[col_letter].width = 27
 
     # -----------------------------------------------------
-    # 列印範圍
+    # 凍結
+    # -----------------------------------------------------
+
+    ws.freeze_panes = "C4"
+
+    # -----------------------------------------------------
+    # 列印區域
     # -----------------------------------------------------
 
     ws.print_area = f"A1:G{notes_row}"
 
-    ws.oddHeader.center.text = (
-        f"&B{branch_name} 清潔輪值表"
-    )
-
-    ws.oddFooter.center.text = (
-        "第 &P 頁／共 &N 頁"
-    )
+    ws.oddFooter.center.text = "第 &P 頁／共 &N 頁"
 
     # -----------------------------------------------------
     # 儲存
@@ -743,19 +733,106 @@ def generate_cleaning_excel(
 
 
 # =========================================================
-# APP 標題
+# 預覽 HTML
 # =========================================================
 
-st.title("🏫 澳森托嬰中心 月清潔輪值與表單管理系統")
+def build_preview_html(table_records):
+
+    # 這裡刻意不用有縮排的 multiline HTML，
+    # 避免 Streamlit Markdown 把 HTML 當成程式碼。
+
+    parts = []
+
+    parts.append('<div class="cleaning-preview-wrapper">')
+    parts.append('<table class="cleaning-preview-table">')
+
+    parts.append("<thead>")
+    parts.append("<tr>")
+
+    parts.append('<th class="week-col">週次</th>')
+    parts.append('<th class="day-col">星期一</th>')
+    parts.append('<th class="day-col">星期二</th>')
+    parts.append('<th class="day-col">星期三</th>')
+    parts.append('<th class="day-col">星期四</th>')
+    parts.append('<th class="day-col">星期五</th>')
+
+    parts.append("</tr>")
+    parts.append("</thead>")
+
+    parts.append("<tbody>")
+
+    for record in table_records:
+
+        parts.append("<tr>")
+
+        parts.append(
+            '<td class="week-col">'
+            + html.escape(str(record["週次"]))
+            + "</td>"
+        )
+
+        for i in range(5):
+
+            safe_date = html.escape(
+                str(record["日期"][i])
+            )
+
+            safe_task = html.escape(
+                str(record["內容"][i])
+            )
+
+            safe_teacher = html.escape(
+                str(record["老師"][i])
+            )
+
+            parts.append('<td class="day-col">')
+
+            parts.append(
+                '<div class="preview-date">'
+                + safe_date
+                + "</div>"
+            )
+
+            parts.append(
+                '<div class="preview-task">'
+                + safe_task
+                + "</div>"
+            )
+
+            parts.append(
+                '<div class="preview-teacher">'
+                + "負責："
+                + safe_teacher
+                + "</div>"
+            )
+
+            parts.append("</td>")
+
+        parts.append("</tr>")
+
+    parts.append("</tbody>")
+    parts.append("</table>")
+    parts.append("</div>")
+
+    return "".join(parts)
+
+
+# =========================================================
+# 標題
+# =========================================================
+
+st.title(
+    "🏫 澳森托嬰中心 月清潔輪值與表單管理系統"
+)
 
 st.caption(
-    "支援澳森與澳森文德雙分園｜"
-    "排班預覽｜假日調整｜Excel 匯出｜歷史紀錄"
+    "澳森／澳森文德雙分園｜"
+    "月清潔排班｜即時預覽｜Excel 匯出"
 )
 
 
 # =========================================================
-# 雙分園 Tab
+# 分園 Tabs
 # =========================================================
 
 tab_a, tab_b = st.tabs(
@@ -767,20 +844,17 @@ tab_a, tab_b = st.tabs(
 
 
 # =========================================================
-# 分園畫面
+# 分園主畫面
 # =========================================================
 
-def render_branch_tab(
-    branch_name,
-    prefix,
-):
+def render_branch_tab(branch_name, prefix):
 
-    # -----------------------------------------------------
-    # 基本參數
-    # -----------------------------------------------------
+    # =====================================================
+    # 基本設定
+    # =====================================================
 
     st.subheader(
-        f"📌 {branch_name}｜基本參數設定"
+        f"📌 {branch_name}｜基本設定"
     )
 
     col1, col2, col3 = st.columns(
@@ -795,7 +869,7 @@ def render_branch_tab(
             max_value=125,
             value=115,
             step=1,
-            key=f"y_{prefix}",
+            key=f"year_{prefix}",
         )
 
     with col2:
@@ -804,31 +878,34 @@ def render_branch_tab(
             "月份",
             options=list(range(1, 13)),
             index=8,
-            key=f"m_{prefix}",
+            key=f"month_{prefix}",
         )
 
     with col3:
 
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(
+            "<div style='height:22px'></div>",
+            unsafe_allow_html=True,
+        )
 
         save_clicked = st.button(
-            "💾 儲存目前排班至歷史紀錄",
-            key=f"save_hist_{prefix}",
+            "💾 儲存目前排班",
+            key=f"save_history_{prefix}",
             use_container_width=True,
         )
 
-    # -----------------------------------------------------
-    # 老師名單
-    # -----------------------------------------------------
+    # =====================================================
+    # 老師
+    # =====================================================
 
-    st.markdown("#### 👥 執行清潔老師名單")
+    st.markdown(
+        "#### 👥 執行老師"
+    )
 
     teacher_text = st.text_input(
-        "姓名以逗號分隔",
+        "老師姓名，以逗號分隔",
         value=", ".join(
-            st.session_state[
-                f"teachers_{prefix}"
-            ]
+            st.session_state[f"teachers_{prefix}"]
         ),
         key=f"teacher_input_{prefix}",
     )
@@ -846,9 +923,9 @@ def render_branch_tab(
         f"teachers_{prefix}"
     ] = teachers
 
-    # -----------------------------------------------------
-    # 清潔工作管理
-    # -----------------------------------------------------
+    # =====================================================
+    # 工作項目管理
+    # =====================================================
 
     with st.expander(
         "🧹 清潔工作項目管理",
@@ -864,67 +941,74 @@ def render_branch_tab(
             clear_on_submit=True,
         ):
 
-            new_task_name = st.text_input(
-                "新增清潔工作項目名稱與說明"
+            new_task = st.text_input(
+                "新增清潔工作項目"
             )
 
-            submitted = st.form_submit_button(
-                "➕ 新增工作項目"
+            add_task_clicked = (
+                st.form_submit_button(
+                    "➕ 新增工作項目"
+                )
             )
 
             if (
-                submitted
-                and new_task_name.strip()
+                add_task_clicked
+                and new_task.strip()
             ):
 
                 st.session_state[
                     f"tasks_{prefix}"
                 ].append(
-                    new_task_name.strip()
+                    new_task.strip()
                 )
 
                 st.rerun()
 
         updated_tasks = []
 
-        for idx, task_item in enumerate(
+        for task_index, task in enumerate(
             task_list
         ):
 
-            c1, c2 = st.columns(
-                [8.5, 1.5]
+            edit_col, delete_col = (
+                st.columns([9, 1])
             )
 
-            with c1:
+            with edit_col:
 
                 edited_task = st.text_input(
-                    f"項目 {idx + 1}",
-                    value=task_item,
+                    f"工作項目{task_index}",
+                    value=task,
                     key=(
-                        f"task_card_"
-                        f"{prefix}_{idx}"
+                        f"task_edit_"
+                        f"{prefix}_"
+                        f"{task_index}"
                     ),
                     label_visibility="collapsed",
                 )
 
                 if edited_task.strip():
+
                     updated_tasks.append(
                         edited_task.strip()
                     )
 
-            with c2:
+            with delete_col:
 
                 if st.button(
                     "🗑️",
                     key=(
-                        f"delete_task_"
-                        f"{prefix}_{idx}"
+                        f"task_delete_"
+                        f"{prefix}_"
+                        f"{task_index}"
                     ),
-                    help="刪除此工作項目",
+                    help="刪除此項目",
                     use_container_width=True,
                 ):
 
-                    task_list.pop(idx)
+                    task_list.pop(
+                        task_index
+                    )
 
                     st.session_state[
                         f"tasks_{prefix}"
@@ -940,9 +1024,9 @@ def render_branch_tab(
 
     st.divider()
 
-    # -----------------------------------------------------
-    # 月曆產生
-    # -----------------------------------------------------
+    # =====================================================
+    # 月曆
+    # =====================================================
 
     year_ad = int(year_roc) + 1911
 
@@ -950,37 +1034,33 @@ def render_branch_tab(
         years=year_ad
     )
 
-    cal = calendar.monthcalendar(
-        year_ad,
-        month,
+    month_calendar = (
+        calendar.monthcalendar(
+            year_ad,
+            int(month),
+        )
     )
 
     work_weeks = []
 
-    for week in cal:
+    for week in month_calendar:
 
-        monday_to_friday = week[0:5]
+        weekday_part = week[:5]
 
         if any(
             day > 0
-            for day in monday_to_friday
+            for day in weekday_part
         ):
 
             work_weeks.append(
-                monday_to_friday
+                weekday_part
             )
 
     st.subheader(
         f"📅 {branch_name} "
-        f"{year_roc} 年 {month} 月清潔輪值"
+        f"{year_roc} 年 "
+        f"{month} 月清潔輪值"
     )
-
-    current_tasks = st.session_state[
-        f"tasks_{prefix}"
-    ]
-
-    if not current_tasks:
-        current_tasks = ["一般清潔"]
 
     teacher_pool = st.session_state[
         f"teachers_{prefix}"
@@ -989,11 +1069,20 @@ def render_branch_tab(
     if not teacher_pool:
         teacher_pool = ["主任"]
 
+    current_tasks = st.session_state[
+        f"tasks_{prefix}"
+    ]
+
+    if not current_tasks:
+        current_tasks = [
+            "一般清潔"
+        ]
+
     table_records = []
 
-    task_index = 0
+    task_rotation_index = 0
 
-    week_labels = [
+    week_names = [
         "第一週",
         "第二週",
         "第三週",
@@ -1002,15 +1091,23 @@ def render_branch_tab(
         "第六週",
     ]
 
-    # -----------------------------------------------------
-    # 每週排班
-    # -----------------------------------------------------
+    day_names = [
+        "週一",
+        "週二",
+        "週三",
+        "週四",
+        "週五",
+    ]
+
+    # =====================================================
+    # 每週
+    # =====================================================
 
     for week_index, week in enumerate(
         work_weeks
     ):
 
-        week_name = week_labels[
+        week_name = week_names[
             week_index
         ]
 
@@ -1023,100 +1120,101 @@ def render_branch_tab(
             row_tasks = []
             row_teachers = []
 
-            cols = st.columns(5)
+            columns = st.columns(5)
 
-            days_label = [
-                "週一",
-                "週二",
-                "週三",
-                "週四",
-                "週五",
-            ]
+            # =================================================
+            # 每天
+            # =================================================
 
-            for day_index, day_value in enumerate(
+            for day_index, day_number in enumerate(
                 week
             ):
 
-                with cols[day_index]:
+                with columns[day_index]:
 
-                    # =====================================
+                    # -----------------------------------------
                     # 日期
-                    # =====================================
+                    # -----------------------------------------
 
-                    if day_value > 0:
+                    if day_number > 0:
 
-                        target_dt = datetime.date(
-                            year_ad,
-                            month,
-                            day_value,
+                        target_date = (
+                            datetime.date(
+                                year_ad,
+                                int(month),
+                                day_number,
+                            )
                         )
 
-                        adjusted_dt = (
+                        adjusted_date = (
                             get_adjusted_workday(
-                                target_dt,
+                                target_date,
                                 tw_holidays,
                             )
                         )
 
                         date_str = (
-                            f"{month}/{day_value}"
+                            f"{month}/{day_number}"
                         )
 
                         if (
-                            adjusted_dt
-                            != target_dt
+                            adjusted_date
+                            != target_date
                         ):
 
                             date_str += (
                                 " "
-                                f"(調日至"
-                                f"{adjusted_dt.month}/"
-                                f"{adjusted_dt.day})"
+                                "(調日至"
+                                f"{adjusted_date.month}/"
+                                f"{adjusted_date.day}"
+                                ")"
                             )
 
                     else:
 
                         date_str = "－"
 
-                    safe_date = html.escape(
-                        date_str
-                    )
+                    # -----------------------------------------
+                    # 星期＋日期
+                    # -----------------------------------------
 
-                    safe_day_name = html.escape(
-                        days_label[day_index]
+                    day_header_html = (
+                        '<div class="day-header">'
+                        '<span class="day-name">'
+                        + html.escape(
+                            day_names[day_index]
+                        )
+                        + "</span>"
+                        '<span class="day-date">'
+                        + html.escape(
+                            date_str
+                        )
+                        + "</span>"
+                        "</div>"
                     )
 
                     st.markdown(
-                        f"""
-                        <div class="day-header">
-                            <span class="day-name">
-                                {safe_day_name}
-                            </span>
-                            <span class="day-date">
-                                {safe_date}
-                            </span>
-                        </div>
-                        """,
+                        day_header_html,
                         unsafe_allow_html=True,
                     )
 
-                    # =====================================
-                    # 空白日期
-                    # =====================================
+                    # =========================================
+                    # 月份外的日期
+                    # =========================================
 
-                    if day_value == 0:
+                    if day_number == 0:
 
                         chosen_task = (
                             st.selectbox(
                                 (
-                                    f"工作_"
-                                    f"{week_index}_"
+                                    "空白工作"
+                                    f"{week_index}"
                                     f"{day_index}"
                                 ),
                                 options=["無"],
                                 index=0,
                                 key=(
-                                    f"task_"
+                                    f"empty_task_"
                                     f"{prefix}_"
                                     f"{year_roc}_"
                                     f"{month}_"
@@ -1133,14 +1231,14 @@ def render_branch_tab(
                         chosen_teacher = (
                             st.selectbox(
                                 (
-                                    f"老師_"
-                                    f"{week_index}_"
+                                    "空白老師"
+                                    f"{week_index}"
                                     f"{day_index}"
                                 ),
                                 options=["無"],
                                 index=0,
                                 key=(
-                                    f"teacher_"
+                                    f"empty_teacher_"
                                     f"{prefix}_"
                                     f"{year_roc}_"
                                     f"{month}_"
@@ -1154,15 +1252,24 @@ def render_branch_tab(
                             )
                         )
 
-                    # =====================================
-                    # 有效日期
-                    # =====================================
+                    # =========================================
+                    # 有日期
+                    # =========================================
 
                     else:
 
-                        # 特殊規則：
-                        # 第2、4週星期二
-                        # 預設清點備品
+                        # -------------------------------------
+                        # 預設工作
+                        # -------------------------------------
+
+                        default_task = (
+                            current_tasks[
+                                task_rotation_index
+                                % len(current_tasks)
+                            ]
+                        )
+
+                        # 第二、四週星期二
                         if (
                             day_index == 1
                             and (
@@ -1171,27 +1278,25 @@ def render_branch_tab(
                             )
                         ):
 
-                            matched = [
+                            matches = [
                                 task
-                                for task
-                                in current_tasks
+                                for task in current_tasks
                                 if "清點備品"
                                 in task
                             ]
 
-                            default_task = (
-                                matched[0]
-                                if matched
-                                else current_tasks[0]
-                            )
+                            if matches:
+
+                                default_task = (
+                                    matches[0]
+                                )
 
                         # 星期五
                         elif day_index == 4:
 
-                            matched = [
+                            matches = [
                                 task
-                                for task
-                                in current_tasks
+                                for task in current_tasks
                                 if (
                                     "掃地機器人"
                                     in task
@@ -1202,34 +1307,25 @@ def render_branch_tab(
                                 )
                             ]
 
-                            default_task = (
-                                matched[0]
-                                if matched
-                                else current_tasks[-1]
-                            )
+                            if matches:
+
+                                default_task = (
+                                    matches[0]
+                                )
 
                         else:
 
-                            default_task = (
-                                current_tasks[
-                                    task_index
-                                    % len(
-                                        current_tasks
-                                    )
-                                ]
-                            )
+                            task_rotation_index += 1
 
-                            task_index += 1
-
-                        # -----------------------------
-                        # 清潔項目
-                        # -----------------------------
+                        # -------------------------------------
+                        # 工作選擇
+                        # -------------------------------------
 
                         chosen_task = (
                             st.selectbox(
                                 (
-                                    f"工作_"
-                                    f"{week_index}_"
+                                    "工作"
+                                    f"{week_index}"
                                     f"{day_index}"
                                 ),
                                 options=current_tasks,
@@ -1255,27 +1351,35 @@ def render_branch_tab(
                             )
                         )
 
-                        # -----------------------------
-                        # 老師
-                        # -----------------------------
+                        # -------------------------------------
+                        # 預設老師
+                        # -------------------------------------
+
+                        default_teacher_index = (
+                            (
+                                week_index * 5
+                                + day_index
+                            )
+                            % len(
+                                teacher_pool
+                            )
+                        )
 
                         default_teacher = (
                             teacher_pool[
-                                (
-                                    week_index * 5
-                                    + day_index
-                                )
-                                % len(
-                                    teacher_pool
-                                )
+                                default_teacher_index
                             ]
                         )
+
+                        # -------------------------------------
+                        # 老師選擇
+                        # -------------------------------------
 
                         chosen_teacher = (
                             st.selectbox(
                                 (
-                                    f"老師_"
-                                    f"{week_index}_"
+                                    "老師"
+                                    f"{week_index}"
                                     f"{day_index}"
                                 ),
                                 options=teacher_pool,
@@ -1319,31 +1423,41 @@ def render_branch_tab(
                 }
             )
 
-    # -----------------------------------------------------
+    # =====================================================
     # 備註
-    # -----------------------------------------------------
+    # =====================================================
 
     st.markdown(
-        "#### 📝 備註與提醒事項"
+        "#### 📝 備註"
     )
 
-    st.session_state[
-        f"notes_{prefix}"
-    ] = st.text_area(
+    notes = st.text_area(
         "備註",
         value=st.session_state[
             f"notes_{prefix}"
         ],
-        height=75,
-        key=f"notes_area_{prefix}",
+        height=70,
+        key=f"notes_{prefix}_area",
         label_visibility="collapsed",
     )
 
-    # -----------------------------------------------------
-    # DataFrame
-    # -----------------------------------------------------
+    st.session_state[
+        f"notes_{prefix}"
+    ] = notes
+
+    # =====================================================
+    # 轉換為 DataFrame
+    # =====================================================
 
     export_rows = []
+
+    day_keys = [
+        "一",
+        "二",
+        "三",
+        "四",
+        "五",
+    ]
 
     for record in table_records:
 
@@ -1351,26 +1465,20 @@ def render_branch_tab(
             "週次": record["週次"]
         }
 
-        days_k = [
-            "一",
-            "二",
-            "三",
-            "四",
-            "五",
-        ]
-
-        for i, dk in enumerate(days_k):
+        for i, day_key in enumerate(
+            day_keys
+        ):
 
             row_dict[
-                f"{dk}_0"
+                f"{day_key}_0"
             ] = record["日期"][i]
 
             row_dict[
-                f"{dk}_1"
+                f"{day_key}_1"
             ] = record["內容"][i]
 
             row_dict[
-                f"{dk}_2"
+                f"{day_key}_2"
             ] = record["老師"][i]
 
         export_rows.append(
@@ -1381,9 +1489,9 @@ def render_branch_tab(
         export_rows
     )
 
-    # -----------------------------------------------------
-    # 儲存歷史
-    # -----------------------------------------------------
+    # =====================================================
+    # 儲存歷史紀錄
+    # =====================================================
 
     if save_clicked:
 
@@ -1402,9 +1510,7 @@ def render_branch_tab(
             "year_roc": int(year_roc),
             "month": int(month),
             "df": final_df.copy(),
-            "notes": st.session_state[
-                f"notes_{prefix}"
-            ],
+            "notes": notes,
         }
 
         st.session_state[
@@ -1414,15 +1520,12 @@ def render_branch_tab(
         )
 
         st.success(
-            f"✅ 已儲存 "
-            f"{branch_name} "
-            f"{year_roc}年"
-            f"{month}月排班紀錄"
+            "✅ 已儲存目前排班"
         )
 
-    # -----------------------------------------------------
+    # =====================================================
     # 即時預覽
-    # -----------------------------------------------------
+    # =====================================================
 
     st.divider()
 
@@ -1430,81 +1533,20 @@ def render_branch_tab(
         "👁️ 月曆式即時預覽"
     )
 
-    preview_html = """
-    <div class="cleaning-preview-wrapper">
-    <table class="cleaning-preview-table">
-
-        <thead>
-            <tr>
-                <th class="week-col">週次</th>
-                <th class="day-col">星期一</th>
-                <th class="day-col">星期二</th>
-                <th class="day-col">星期三</th>
-                <th class="day-col">星期四</th>
-                <th class="day-col">星期五</th>
-            </tr>
-        </thead>
-
-        <tbody>
-    """
-
-    for record in table_records:
-
-        preview_html += (
-            "<tr>"
-            f'<td class="week-col">'
-            f'{html.escape(record["週次"])}'
-            "</td>"
+    preview_html = (
+        build_preview_html(
+            table_records
         )
-
-        for i in range(5):
-
-            safe_date = html.escape(
-                str(record["日期"][i])
-            )
-
-            safe_task = html.escape(
-                str(record["內容"][i])
-            )
-
-            safe_teacher = html.escape(
-                str(record["老師"][i])
-            )
-
-            preview_html += f"""
-                <td class="day-col">
-
-                    <div class="preview-date">
-                        {safe_date}
-                    </div>
-
-                    <div class="preview-task">
-                        {safe_task}
-                    </div>
-
-                    <div class="preview-teacher">
-                        負責：{safe_teacher}
-                    </div>
-
-                </td>
-            """
-
-        preview_html += "</tr>"
-
-    preview_html += """
-        </tbody>
-    </table>
-    </div>
-    """
+    )
 
     st.markdown(
         preview_html,
         unsafe_allow_html=True,
     )
 
-    # -----------------------------------------------------
+    # =====================================================
     # Excel
-    # -----------------------------------------------------
+    # =====================================================
 
     st.divider()
 
@@ -1514,37 +1556,30 @@ def render_branch_tab(
 
     try:
 
-        excel_bytes = (
+        excel_data = (
             generate_cleaning_excel(
                 branch_name=branch_name,
-                year_roc=int(
-                    year_roc
-                ),
-                month=int(
-                    month
-                ),
+                year_roc=int(year_roc),
+                month=int(month),
                 schedule_df=final_df,
-                notes_text=(
-                    st.session_state[
-                        f"notes_{prefix}"
-                    ]
-                ),
+                notes_text=notes,
             )
         )
 
         st.download_button(
             label=(
-                f"📥 下載【"
+                "📥 下載【"
                 f"{branch_name} "
                 f"{year_roc}年"
-                f"{month}月清潔輪值表】"
+                f"{month}月"
+                "清潔輪值表】"
             ),
-            data=excel_bytes,
+            data=excel_data,
             file_name=(
                 f"{branch_name}_"
                 f"{year_roc}年"
                 f"{month}月"
-                f"清潔輪值紀錄表.xlsx"
+                "清潔輪值紀錄表.xlsx"
             ),
             mime=(
                 "application/"
@@ -1553,7 +1588,7 @@ def render_branch_tab(
                 "spreadsheetml.sheet"
             ),
             key=(
-                f"download_excel_"
+                f"excel_download_"
                 f"{prefix}_"
                 f"{year_roc}_"
                 f"{month}"
@@ -1567,46 +1602,47 @@ def render_branch_tab(
             "❌ Excel 產生失敗"
         )
 
-        st.exception(error)
+        st.exception(
+            error
+        )
 
-    # -----------------------------------------------------
+    # =====================================================
     # 歷史紀錄
-    # -----------------------------------------------------
+    # =====================================================
 
     st.divider()
 
     st.subheader(
-        f"📂 歷史輪值紀錄｜"
-        f"{branch_name}"
+        f"📂 歷史紀錄｜{branch_name}"
     )
 
-    history_list = st.session_state[
-        f"history_{prefix}"
-    ]
+    history_list = (
+        st.session_state[
+            f"history_{prefix}"
+        ]
+    )
 
     if not history_list:
 
         st.info(
             "目前尚無歷史紀錄。"
-            "完成排班後，可點擊上方"
-            "「儲存目前排班至歷史紀錄」。"
         )
 
     else:
 
-        reversed_history = list(
+        history_reverse = list(
             reversed(
                 history_list
             )
         )
 
         for history_index, history in enumerate(
-            reversed_history
+            history_reverse
         ):
 
             with st.expander(
                 (
-                    f"📜 "
+                    "📜 "
                     f"[{history['timestamp']}] "
                     f"{history['title']}"
                 ),
@@ -1624,99 +1660,62 @@ def render_branch_tab(
                     )
                 )
 
-                history_preview = """
-                <div class="cleaning-preview-wrapper">
-                <table class="cleaning-preview-table">
+                # -----------------------------------------
+                # 歷史紀錄轉 preview records
+                # -----------------------------------------
 
-                    <thead>
-                        <tr>
-                            <th class="week-col">週次</th>
-                            <th class="day-col">星期一</th>
-                            <th class="day-col">星期二</th>
-                            <th class="day-col">星期三</th>
-                            <th class="day-col">星期四</th>
-                            <th class="day-col">星期五</th>
-                        </tr>
-                    </thead>
+                history_records = []
 
-                    <tbody>
-                """
+                for _, history_row in (
+                    history["df"].iterrows()
+                ):
 
-                for _, row in history[
-                    "df"
-                ].iterrows():
+                    history_records.append(
+                        {
+                            "週次": history_row[
+                                "週次"
+                            ],
 
-                    history_preview += (
-                        "<tr>"
-                        '<td class="week-col">'
-                        f'{html.escape(str(row["週次"]))}'
-                        "</td>"
+                            "日期": [
+                                history_row["一_0"],
+                                history_row["二_0"],
+                                history_row["三_0"],
+                                history_row["四_0"],
+                                history_row["五_0"],
+                            ],
+
+                            "內容": [
+                                history_row["一_1"],
+                                history_row["二_1"],
+                                history_row["三_1"],
+                                history_row["四_1"],
+                                history_row["五_1"],
+                            ],
+
+                            "老師": [
+                                history_row["一_2"],
+                                history_row["二_2"],
+                                history_row["三_2"],
+                                history_row["四_2"],
+                                history_row["五_2"],
+                            ],
+                        }
                     )
 
-                    days_k = [
-                        "一",
-                        "二",
-                        "三",
-                        "四",
-                        "五",
-                    ]
-
-                    for dk in days_k:
-
-                        h_date = html.escape(
-                            str(
-                                row[
-                                    f"{dk}_0"
-                                ]
-                            )
-                        )
-
-                        h_task = html.escape(
-                            str(
-                                row[
-                                    f"{dk}_1"
-                                ]
-                            )
-                        )
-
-                        h_teacher = html.escape(
-                            str(
-                                row[
-                                    f"{dk}_2"
-                                ]
-                            )
-                        )
-
-                        history_preview += f"""
-                        <td class="day-col">
-
-                            <div class="preview-date">
-                                {h_date}
-                            </div>
-
-                            <div class="preview-task">
-                                {h_task}
-                            </div>
-
-                            <div class="preview-teacher">
-                                負責：{h_teacher}
-                            </div>
-
-                        </td>
-                        """
-
-                    history_preview += "</tr>"
-
-                history_preview += """
-                    </tbody>
-                </table>
-                </div>
-                """
+                history_html = (
+                    build_preview_html(
+                        history_records
+                    )
+                )
 
                 st.markdown(
-                    history_preview,
+                    history_html,
                     unsafe_allow_html=True,
                 )
+
+                # -----------------------------------------
+                # 歷史 Excel
+                # -----------------------------------------
 
                 try:
 
@@ -1745,13 +1744,13 @@ def render_branch_tab(
 
                     st.download_button(
                         label=(
-                            "📥 重新下載此歷史版本"
+                            "📥 下載此歷史版本"
                         ),
                         data=history_excel,
                         file_name=(
                             f"{branch_name}_"
                             f"{history['title']}_"
-                            f"歷史存檔.xlsx"
+                            "歷史存檔.xlsx"
                         ),
                         mime=(
                             "application/"
@@ -1760,7 +1759,7 @@ def render_branch_tab(
                             "spreadsheetml.sheet"
                         ),
                         key=(
-                            f"history_download_"
+                            f"history_excel_"
                             f"{prefix}_"
                             f"{history_index}_"
                             f"{history['timestamp']}"
@@ -1771,15 +1770,16 @@ def render_branch_tab(
                 except Exception as error:
 
                     st.error(
-                        "此歷史版本 Excel "
-                        "產生失敗"
+                        "❌ 此歷史版本 Excel 產生失敗"
                     )
 
-                    st.exception(error)
+                    st.exception(
+                        error
+                    )
 
 
 # =========================================================
-# 顯示兩個分園
+# 澳森
 # =========================================================
 
 with tab_a:
@@ -1789,6 +1789,10 @@ with tab_a:
         "A",
     )
 
+
+# =========================================================
+# 澳森文德
+# =========================================================
 
 with tab_b:
 
