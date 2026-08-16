@@ -42,27 +42,40 @@ def set_table_borders(table, color="1F497D", sz="4", val="single"):
     )
     tblPr.append(borders)
 
-DEFAULT_TASKS = [
-    "樓下酵素熱水倒水槽\n(幼兒洗手水槽、門口小水槽、洗屁屁區、備餐區，使用2/3桶熱水配半杓酵素攪拌均勻)",
-    "樓梯間掃地拖地\n(包含牆壁檯面灰塵清潔)",
-    "晨檢區灰塵及洗手台\n(檯面及角落灰塵清潔、洗手台用漂白水噴式擦拭、掃地及拖地)",
-    "樓上廁所\n(洗手台漂白水噴拭除黴、馬桶清潔刷淨、地板掃地拖地)",
-    "辦公室灰塵\n(檯面整理、灰塵擦拭乾淨、後方櫃子除塵、監視器及縫隙除塵)",
+DEFAULT_TASKS_A = [
+    "樓下酵素熱水倒水槽(幼兒洗手水槽、門口小水槽、洗屁屁區、備餐區，使用2/3桶熱水配半杓酵素攪拌均勻)",
+    "樓梯間掃地拖地(包含牆壁檯面灰塵清潔)",
+    "晨檢區灰塵及洗手台(檯面及角落灰塵清潔、洗手台用漂白水噴式擦拭、掃地及拖地)",
+    "樓上廁所(洗手台漂白水噴拭除黴、馬桶清潔刷淨、地板掃地拖地)",
+    "辦公室灰塵(檯面整理、灰塵擦拭乾淨、後方櫃子除塵、監視器及縫隙除塵)",
     "清點備品",
     "除濕機濾網跟接水槽清潔",
     "刪除上個月Line相簿",
-    "廚房門口上面紗窗清潔\n(使用雞毛撢子撥灰塵)",
-    "掃地機器人/寢具表填寫/規劃戶外活動計畫表與回報\n(髒水倒掉、洗淨、補充乾淨水、清潔液1:50)"
+    "廚房門口上面紗窗清潔(使用雞毛撢子撥灰塵)",
+    "掃地機器人/寢具表填寫/規劃戶外活動計畫表與回報(髒水倒掉、洗淨、補充乾淨水、清潔液1:50)"
+]
+
+DEFAULT_TASKS_B = [
+    "酵素熱水倒水槽(幼兒洗手水槽、門口小水槽、洗屁屁區、備餐區，使用2/3桶熱水配半杓酵素攪拌均勻)",
+    "樓梯間掃地拖地(包含玻璃檯面灰塵清潔)",
+    "晨檢區灰塵及洗手台(檯面及角落灰塵清潔、洗手台用漂白水噴式擦拭、掃地及拖地)",
+    "樓上廁所(洗手台漂白水噴拭除黴、馬桶清潔刷淨、地板掃地拖地)",
+    "辦公室灰塵(檯面整理、灰塵擦拭乾淨、後方櫃子除塵、監視器及縫隙除塵)",
+    "清點備品",
+    "除濕機濾網跟接水槽清潔",
+    "刪除上個月Line相簿",
+    "廚房門口上面紗窗清潔(使用雞毛撢子撥灰塵)",
+    "戶外掃落葉/寢具表填寫/規劃戶外活動計畫表與回報(髒水倒掉、洗淨、補充乾淨水、清潔液1:50)"
 ]
 
 # --- 初始化 Session State ---
-for prefix in ["A", "B"]:
+for prefix, tasks_init in [("A", DEFAULT_TASKS_A), ("B", DEFAULT_TASKS_B)]:
     if f"teachers_{prefix}" not in st.session_state:
         st.session_state[f"teachers_{prefix}"] = ["主任", "均宜", "小安", "綺綺", "嘉鳳", "樺樺", "Candy", "Panda"]
     if f"tasks_{prefix}" not in st.session_state:
-        st.session_state[f"tasks_{prefix}"] = DEFAULT_TASKS.copy()
+        st.session_state[f"tasks_{prefix}"] = tasks_init
     if f"notes_{prefix}" not in st.session_state:
-        st.session_state[f"notes_{prefix}"] = "備註：請各位老師確實執行清潔項目，若遇請假請務必提前找職務代理人協助。"
+        st.session_state[f"notes_{prefix}"] = "備註：請各位老師確實執行每日清潔項目，若遇請假請務必提前找職務代理人協助。"
     if f"history_{prefix}" not in st.session_state:
         st.session_state[f"history_{prefix}"] = []
 
@@ -159,7 +172,7 @@ def generate_cleaning_docx(branch_name, year_roc, month, schedule_df, notes_text
     return doc_io
 
 st.title("🏫 澳森托嬰中心 月清潔輪值與表單管理系統")
-st.markdown("支援 **澳森** 與 **澳森文德** 雙分園，具備 **即時預覽功能** 與 **歷史輪值紀錄儲存/查看**！")
+st.markdown("支援 **澳森** 與 **澳森文德** 雙分園，自動避開國定假日，小 icon 卡片式工作管理與即時視窗內預覽！")
 
 tab_a, tab_b = st.tabs(["🌳 澳森分園", "🌸 澳森文德分園"])
 
@@ -179,12 +192,39 @@ def render_branch_tab(branch_name, prefix):
     t_input = st.text_input("請輸入老師姓名（以逗號分隔）：", value=", ".join(st.session_state[f"teachers_{prefix}"]), key=f"t_in_{branch_name}")
     st.session_state[f"teachers_{prefix}"] = [t.strip() for t in t_input.split(",") if t.strip()]
 
-    st.markdown("#### 🧹 清潔工作項目管理（可編輯與自訂）")
-    task_text = st.text_area("清潔項目清單（每行一項）：", value="\n".join(st.session_state[f"tasks_{prefix}"]), height=130, key=f"task_in_{branch_name}")
-    st.session_state[f"tasks_{prefix}"] = [tk.strip() for tk in task_text.split("\n") if tk.strip()]
+    st.markdown("#### 🧹 清潔工作項目管理（小 Icon 卡片區）")
+    st.caption("您可以新增、編輯或刪除以下清潔項目小卡：")
+
+    # 卡片式清單呈現與編輯
+    task_list = st.session_state[f"tasks_{prefix}"]
+    
+    # 新增工作項目表單
+    with st.form(key=f"add_task_form_{prefix}", clear_on_submit=True):
+        new_task_name = st.text_input("➕ 新增清潔工作項目名稱與說明：")
+        submitted = st.form_submit_button("新增至項目清單")
+        if submitted and new_task_name.strip():
+            st.session_state[f"tasks_{prefix}"].append(new_task_name.strip())
+            st.rerun()
+
+    # 呈現每個工作項目的卡片 (支援刪除/編輯)
+    updated_tasks = []
+    for idx, t_item in enumerate(task_list):
+        c_col1, c_col2, c_col3 = st.columns([0.05, 0.8, 0.15])
+        with c_col1:
+            st.markdown("🧹")
+        with c_col2:
+            edited_t = st.text_input(f"卡片_{idx}", value=t_item, key=f"task_card_{prefix}_{idx}", label_visibility="collapsed")
+            updated_tasks.append(edited_t)
+        with c_col3:
+            if st.button("🗑️ 刪除", key=f"del_task_{prefix}_{idx}"):
+                task_list.pop(idx)
+                st.session_state[f"tasks_{prefix}"] = task_list
+                st.rerun()
+    st.session_state[f"tasks_{prefix}"] = updated_tasks
 
     st.divider()
 
+    # 計算當月週次與假日
     year_ad = year_roc + 1911
     tw_holidays = holidays.Taiwan(years=year_ad)
     cal = calendar.monthcalendar(year_ad, month)
@@ -198,13 +238,12 @@ def render_branch_tab(branch_name, prefix):
 
     table_records = []
     teacher_pool = st.session_state[f"teachers_{prefix}"] if st.session_state[f"teachers_{prefix}"] else ["主任"]
-    task_pool = st.session_state[f"tasks_{prefix}"] if st.session_state[f"tasks_{prefix}"] else DEFAULT_TASKS
+    current_tasks = st.session_state[f"tasks_{prefix}"] if st.session_state[f"tasks_{prefix}"] else ["一般清潔"]
 
     t_idx = 0
     for idx, w in enumerate(work_weeks[:4], start=1):
         week_name = f"第{['一','二','三','四'][idx-1]}週"
-        with st.expander(f"📌 {week_name} 排班與任務細節", expanded=True):
-            cols = st.columns(5)
+        with st.expander(f"📌 {week_name} 排班與任務細節調整", expanded=True):
             days_label = ['週一', '週二', '週三', '週四', '週五']
             
             row_dates = []
@@ -212,34 +251,44 @@ def render_branch_tab(branch_name, prefix):
             row_teachers = []
 
             for d_i, day_val in enumerate(w):
-                with cols[d_i]:
-                    if day_val > 0:
-                        target_dt = datetime.date(year_ad, month, day_val)
-                        adjusted_dt = get_adjusted_workday(target_dt, tw_holidays)
-                        date_str = f"{month}/{day_val}"
-                        if adjusted_dt != target_dt:
-                            date_str += f"\n(調日至{adjusted_dt.month}/{adjusted_dt.day})"
+                if day_val > 0:
+                    target_dt = datetime.date(year_ad, month, day_val)
+                    adjusted_dt = get_adjusted_workday(target_dt, tw_holidays)
+                    date_str = f"{month}/{day_val}"
+                    if adjusted_dt != target_dt:
+                        date_str += f" (調日至{adjusted_dt.month}/{adjusted_dt.day})"
+                else:
+                    date_str = "-"
+
+                # 智慧固定邏輯：隔週二清點備品，週五掃地機器人/戶外掃落葉
+                default_task = ""
+                if day_val > 0:
+                    if d_i == 1 and (idx in [2, 4]):
+                        # 尋找清點備品項目
+                        match_item = [t for t in current_tasks if "清點備品" in t]
+                        default_task = match_item[0] if match_item else "清點備品"
+                    elif d_i == 4:
+                        # 尋找週五報表項目
+                        match_item = [t for t in current_tasks if "掃地機器人" in t or "戶外掃落葉" in t or "規劃戶外活動" in t]
+                        default_task = match_item[0] if match_item else current_tasks[-1]
                     else:
-                        date_str = "-"
+                        default_task = current_tasks[t_idx % len(current_tasks)]
+                        t_idx += 1
 
-                    st.markdown(f"**{days_label[d_i]}**\n`{date_str}`")
-
-                    default_task = ""
-                    if day_val > 0:
-                        if d_i == 1 and (idx in [2, 4]):
-                            default_task = "清點備品"
-                        else:
-                            default_task = task_pool[t_idx % len(task_pool)]
-                            t_idx += 1
-
-                    chosen_task = st.text_area(f"工作_{idx}_{d_i}", value=default_task, height=75, key=f"task_{branch_name}_{idx}_{d_i}")
-                    
+                st.markdown(f"**【{days_label[d_i]}】日期：`{date_str}`**")
+                col_box1, col_box2 = st.columns([3, 1])
+                with col_box1:
+                    # 這裡主任可以從現有的工作項目清單中選擇，或直接在下拉框/文字框指定
+                    chosen_task = st.selectbox(f"指派工作_{idx}_{d_i}", options=current_tasks, index=current_tasks.index(default_task) if default_task in current_tasks else 0, key=f"task_{branch_name}_{idx}_{d_i}", label_visibility="collapsed")
+                with col_box2:
                     default_teacher = teacher_pool[(idx * 5 + d_i) % len(teacher_pool)]
-                    chosen_teacher = st.selectbox(f"老師_{idx}_{d_i}", teacher_options := (["主任"] + teacher_pool), index=teacher_options.index(default_teacher) if default_teacher in teacher_options else 0, key=f"tea_{branch_name}_{idx}_{d_i}")
+                    chosen_teacher = st.selectbox(f"負責老師_{idx}_{d_i}", teacher_options := (["主任"] + teacher_pool), index=teacher_options.index(default_teacher) if default_teacher in teacher_options else 0, key=f"tea_{branch_name}_{idx}_{d_i}", label_visibility="collapsed")
+                
+                st.markdown("---")
 
-                    row_dates.append(date_str)
-                    row_tasks.append(chosen_task)
-                    row_teachers.append(chosen_teacher)
+                row_dates.append(date_str)
+                row_tasks.append(chosen_task)
+                row_teachers.append(chosen_teacher)
 
             table_records.append({
                 "週次": week_name,
@@ -274,18 +323,29 @@ def render_branch_tab(branch_name, prefix):
         st.success(f"✅ 已成功儲存 {branch_name} {year_roc}年{month}月排班紀錄！")
 
     st.divider()
-    st.subheader("👁️ 即時預覽清潔輪值表")
+    st.subheader("👁️ 即時預覽清潔輪值表（符合視窗大小）")
     preview_display_data = []
     for rec in table_records:
         preview_display_data.append({
             "週次": rec["週次"],
-            "星期一": f"日期: {rec['日期'][0]}\n內容: {rec['內容'][0]}\n老師: {rec['老師'][0]}",
-            "星期二": f"日期: {rec['日期'][1]}\n內容: {rec['內容'][1]}\n老師: {rec['老師'][1]}",
-            "星期三": f"日期: {rec['日期'][2]}\n內容: {rec['內容'][2]}\n老師: {rec['老師'][2]}",
-            "星期四": f"日期: {rec['日期'][3]}\n內容: {rec['內容'][3]}\n老師: {rec['老師'][3]}",
-            "星期五": f"日期: {rec['日期'][4]}\n內容: {rec['內容'][4]}\n老師: {rec['老師'][4]}"
+            "星期一": f"日期: {rec['日期'][0]}
+內容: {rec['內容'][0]}
+老師: {rec['老師'][0]}",
+            "星期二": f"日期: {rec['日期'][1]}
+內容: {rec['內容'][1]}
+老師: {rec['老師'][1]}",
+            "星期三": f"日期: {rec['日期'][2]}
+內容: {rec['內容'][2]}
+老師: {rec['老師'][2]}",
+            "星期四": f"日期: {rec['日期'][3]}
+內容: {rec['內容'][3]}
+老師: {rec['老師'][3]}",
+            "星期五": f"日期: {rec['日期'][4]}
+內容: {rec['內容'][4]}
+老師: {rec['老師'][4]}"
         })
-    st.dataframe(pd.DataFrame(preview_display_data), use_container_width=True)
+    # 設定 height 讓表格直接 fit 在畫面裡，不會超出視窗
+    st.dataframe(pd.DataFrame(preview_display_data), use_container_width=True, height=250)
 
     st.divider()
     st.subheader(f"📥 匯出 {branch_name} 清潔輪值 Word 檔")
@@ -312,13 +372,23 @@ def render_branch_tab(branch_name, prefix):
                 for idx_r, r_val in hist['df'].iterrows():
                     h_display.append({
                         "週次": r_val["週次"],
-                        "星期一": f"日期: {r_val['一_0']}\n內容: {r_val['一_1']}\n老師: {r_val['一_2']}",
-                        "星期二": f"日期: {r_val['二_0']}\n內容: {r_val['二_1']}\n老師: {r_val['二_2']}",
-                        "星期三": f"日期: {r_val['三_0']}\n內容: {r_val['三_1']}\n老師: {r_val['三_2']}",
-                        "星期四": f"日期: {r_val['四_0']}\n內容: {r_val['四_1']}\n老師: {r_val['四_2']}",
-                        "星期五": f"日期: {r_val['五_0']}\n內容: {r_val['五_1']}\n老師: {r_val['五_2']}"
+                        "星期一": f"日期: {r_val['一_0']}
+內容: {r_val['一_1']}
+老師: {r_val['一_2']}",
+                        "星期二": f"日期: {r_val['二_0']}
+內容: {r_val['二_1']}
+老師: {r_val['二_2']}",
+                        "星期三": f"日期: {r_val['三_0']}
+內容: {r_val['三_1']}
+老師: {r_val['三_2']}",
+                        "星期四": f"日期: {r_val['四_0']}
+內容: {r_val['四_1']}
+老師: {r_val['四_2']}",
+                        "星期五": f"日期: {r_val['五_0']}
+內容: {r_val['五_1']}
+老師: {r_val['五_2']}"
                     })
-                st.dataframe(pd.DataFrame(h_display), use_container_width=True)
+                st.dataframe(pd.DataFrame(h_display), use_container_width=True, height=220)
                 
                 h_doc_bytes = generate_cleaning_docx(branch_name, year_roc, month, hist['df'], hist['notes'])
                 st.download_button(
