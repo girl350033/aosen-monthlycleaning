@@ -8,6 +8,7 @@ import html
 
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+from supabase import create_client
 
 
 # =========================================================
@@ -15,23 +16,19 @@ from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 # =========================================================
 
 st.set_page_config(
-    page_title="澳森托嬰中心 月清潔輪值與表單管理系統",
+    page_title="澳森托嬰中心 月清潔輪值表",
     page_icon="🏫",
     layout="wide",
 )
 
 
 # =========================================================
-# 全站 CSS
+# CSS
 # =========================================================
 
 st.markdown(
     """
 <style>
-
-/* ========================================
-   整體頁面縮減留白
-======================================== */
 
 .block-container {
     padding-top: 0.7rem !important;
@@ -41,55 +38,28 @@ st.markdown(
     max-width: 100% !important;
 }
 
-
-/* ========================================
-   標題
-======================================== */
-
 h1 {
     margin-top: 0 !important;
     margin-bottom: 0.45rem !important;
 }
 
-h2,
-h3,
-h4 {
+h2, h3, h4 {
     margin-top: 0.25rem !important;
     margin-bottom: 0.35rem !important;
 }
-
-
-/* ========================================
-   分隔線
-======================================== */
 
 hr {
     margin-top: 0.55rem !important;
     margin-bottom: 0.55rem !important;
 }
 
-
-/* ========================================
-   五欄之間縮小
-======================================== */
-
 div[data-testid="stHorizontalBlock"] {
     gap: 0.55rem !important;
 }
 
-
-/* ========================================
-   垂直元件間距
-======================================== */
-
 div[data-testid="stVerticalBlock"] {
     gap: 0.45rem !important;
 }
-
-
-/* ========================================
-   Expander
-======================================== */
 
 div[data-testid="stExpander"] {
     margin-bottom: 0.55rem !important;
@@ -105,19 +75,13 @@ div[data-testid="stExpander"] summary {
     font-weight: 600 !important;
 }
 
-
-/* ========================================
-   Selectbox
-======================================== */
-
-/* 外框高度 */
+/* Selectbox */
 div[data-baseweb="select"] > div {
     min-height: 56px !important;
     height: auto !important;
     border-radius: 9px !important;
 }
 
-/* 已選取文字盡量顯示兩行 */
 div[data-baseweb="select"] span {
     white-space: normal !important;
     overflow: hidden !important;
@@ -131,7 +95,6 @@ div[data-baseweb="select"] span {
     max-height: 2.7em !important;
 }
 
-/* 下拉選單內文字 */
 li[role="option"] {
     white-space: normal !important;
     height: auto !important;
@@ -139,11 +102,7 @@ li[role="option"] {
     line-height: 1.3 !important;
 }
 
-
-/* ========================================
-   星期＋日期
-======================================== */
-
+/* 星期＋日期 */
 .day-header {
     display: flex;
     align-items: center;
@@ -168,11 +127,7 @@ li[role="option"] {
     white-space: nowrap;
 }
 
-
-/* ========================================
-   即時預覽
-======================================== */
-
+/* 預覽 */
 .cleaning-preview-wrapper {
     width: 100%;
     max-width: 100%;
@@ -202,6 +157,7 @@ li[role="option"] {
     border: 1px solid #d9dce1;
     padding: 6px 5px;
     vertical-align: top;
+
     white-space: normal !important;
     word-break: break-word !important;
     overflow-wrap: anywhere !important;
@@ -235,11 +191,13 @@ li[role="option"] {
     color: #666666;
 }
 
+/* 管理區 */
+.manage-title {
+    font-weight: 700;
+    margin-bottom: 5px;
+}
 
-/* ========================================
-   小螢幕再縮一點
-======================================== */
-
+/* 小螢幕 */
 @media (max-width: 1400px) {
 
     .block-container {
@@ -277,11 +235,6 @@ li[role="option"] {
     }
 }
 
-
-/* ========================================
-   Tab
-======================================== */
-
 div[data-testid="stTabs"] button {
     padding-top: 0.45rem !important;
     padding-bottom: 0.45rem !important;
@@ -294,8 +247,58 @@ div[data-testid="stTabs"] button {
 
 
 # =========================================================
+# Supabase 連線
+# =========================================================
+
+@st.cache_resource
+def get_supabase():
+
+    try:
+        url = st.secrets["SUPABASE_URL"]
+        key = st.secrets["SUPABASE_KEY"]
+
+        return create_client(url, key)
+
+    except Exception as error:
+
+        st.error(
+            "❌ 無法連線 Supabase。請確認 Streamlit Secrets "
+            "中的 SUPABASE_URL 與 SUPABASE_KEY。"
+        )
+
+        st.exception(error)
+        st.stop()
+
+
+supabase = get_supabase()
+
+
+# =========================================================
 # 預設資料
 # =========================================================
+
+DEFAULT_TEACHERS_A = [
+    "主任",
+    "均宜",
+    "小安",
+    "綺綺",
+    "嘉鳳",
+    "樺樺",
+    "Candy",
+    "Panda",
+]
+
+DEFAULT_TEACHERS_B = [
+    "主任",
+    "均宜",
+    "小安",
+    "綺綺",
+    "嘉鳳",
+    "樺樺",
+    "Candy",
+    "Panda",
+]
+
 
 DEFAULT_TASKS_A = [
     "樓下酵素熱水倒水槽(幼兒洗手水槽、門口小水槽、洗屁屁區、備餐區，使用2/3桶熱水配半杓酵素攪拌均勻)",
@@ -325,45 +328,193 @@ DEFAULT_TASKS_B = [
 ]
 
 
-DEFAULT_TEACHERS = [
-    "主任",
-    "均宜",
-    "小安",
-    "綺綺",
-    "嘉鳳",
-    "樺樺",
-    "Candy",
-    "Panda",
-]
+DEFAULT_NOTES = (
+    "備註：請各位老師確實執行清潔項目，"
+    "若遇請假請務必提前找職務代理人協助。"
+)
 
 
 # =========================================================
-# Session State
+# Supabase 資料庫函式
 # =========================================================
 
-for prefix, tasks_init in [
-    ("A", DEFAULT_TASKS_A),
-    ("B", DEFAULT_TASKS_B),
-]:
+def load_teachers(branch):
 
-    if f"teachers_{prefix}" not in st.session_state:
-        st.session_state[f"teachers_{prefix}"] = DEFAULT_TEACHERS.copy()
+    response = (
+        supabase
+        .table("daycare_teachers")
+        .select("*")
+        .eq("branch", branch)
+        .order("sort_order")
+        .execute()
+    )
 
-    if f"tasks_{prefix}" not in st.session_state:
-        st.session_state[f"tasks_{prefix}"] = tasks_init.copy()
+    return response.data or []
 
-    if f"notes_{prefix}" not in st.session_state:
-        st.session_state[f"notes_{prefix}"] = (
-            "備註：請各位老師確實執行清潔項目，"
-            "若遇請假請務必提前找職務代理人協助。"
+
+def load_tasks(branch):
+
+    response = (
+        supabase
+        .table("daycare_cleaning_tasks")
+        .select("*")
+        .eq("branch", branch)
+        .order("sort_order")
+        .execute()
+    )
+
+    return response.data or []
+
+
+def load_settings(branch):
+
+    response = (
+        supabase
+        .table("daycare_settings")
+        .select("*")
+        .eq("branch", branch)
+        .execute()
+    )
+
+    data = response.data or []
+
+    return data[0] if data else None
+
+
+def load_history(branch):
+
+    response = (
+        supabase
+        .table("daycare_schedule_history")
+        .select("*")
+        .eq("branch", branch)
+        .order("created_at", desc=True)
+        .execute()
+    )
+
+    return response.data or []
+
+
+# =========================================================
+# 第一次啟動：初始化預設資料
+# =========================================================
+
+def initialize_branch_data(
+    branch,
+    default_teachers,
+    default_tasks,
+):
+
+    # -----------------------------------------------------
+    # 老師
+    # -----------------------------------------------------
+
+    teachers = load_teachers(branch)
+
+    if not teachers:
+
+        rows = []
+
+        for index, teacher in enumerate(default_teachers):
+
+            rows.append(
+                {
+                    "branch": branch,
+                    "name": teacher,
+                    "sort_order": index,
+                }
+            )
+
+        if rows:
+
+            (
+                supabase
+                .table("daycare_teachers")
+                .insert(rows)
+                .execute()
+            )
+
+    # -----------------------------------------------------
+    # 清潔項目
+    # -----------------------------------------------------
+
+    tasks = load_tasks(branch)
+
+    if not tasks:
+
+        rows = []
+
+        for index, task in enumerate(default_tasks):
+
+            rows.append(
+                {
+                    "branch": branch,
+                    "task_name": task,
+                    "sort_order": index,
+                }
+            )
+
+        if rows:
+
+            (
+                supabase
+                .table("daycare_cleaning_tasks")
+                .insert(rows)
+                .execute()
+            )
+
+    # -----------------------------------------------------
+    # 備註
+    # -----------------------------------------------------
+
+    setting = load_settings(branch)
+
+    if not setting:
+
+        (
+            supabase
+            .table("daycare_settings")
+            .insert(
+                {
+                    "branch": branch,
+                    "notes": DEFAULT_NOTES,
+                }
+            )
+            .execute()
         )
 
-    if f"history_{prefix}" not in st.session_state:
-        st.session_state[f"history_{prefix}"] = []
+
+# =========================================================
+# 執行初始化
+# =========================================================
+
+try:
+
+    initialize_branch_data(
+        "澳森",
+        DEFAULT_TEACHERS_A,
+        DEFAULT_TASKS_A,
+    )
+
+    initialize_branch_data(
+        "澳森文德",
+        DEFAULT_TEACHERS_B,
+        DEFAULT_TASKS_B,
+    )
+
+except Exception as error:
+
+    st.error(
+        "❌ Supabase 資料初始化失敗。"
+        "如果剛建立資料表，請確認 service_role 的資料表權限。"
+    )
+
+    st.exception(error)
+    st.stop()
 
 
 # =========================================================
-# 日期函式
+# 日期工具
 # =========================================================
 
 def is_workday(target_date, tw_holidays):
@@ -379,12 +530,16 @@ def get_adjusted_workday(target_date, tw_holidays):
     if is_workday(target_date, tw_holidays):
         return target_date
 
-    curr = target_date - datetime.timedelta(days=1)
+    current_date = target_date - datetime.timedelta(days=1)
 
-    while not is_workday(curr, tw_holidays):
-        curr -= datetime.timedelta(days=1)
+    while not is_workday(
+        current_date,
+        tw_holidays,
+    ):
 
-    return curr
+        current_date -= datetime.timedelta(days=1)
+
+    return current_date
 
 
 # =========================================================
@@ -401,22 +556,37 @@ def generate_cleaning_excel(
 
     output = io.BytesIO()
 
-    wb = Workbook()
-    ws = wb.active
-    ws.title = f"{month}月清潔輪值"
+    workbook = Workbook()
 
-    ws.sheet_view.showGridLines = False
+    worksheet = workbook.active
 
-    ws.page_setup.orientation = "landscape"
-    ws.page_setup.paperSize = ws.PAPERSIZE_A4
-    ws.page_setup.fitToWidth = 1
-    ws.page_setup.fitToHeight = 0
-    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    worksheet.title = f"{month}月清潔輪值"
 
-    ws.page_margins.left = 0.25
-    ws.page_margins.right = 0.25
-    ws.page_margins.top = 0.4
-    ws.page_margins.bottom = 0.4
+    worksheet.sheet_view.showGridLines = False
+
+    # -----------------------------------------------------
+    # 列印設定
+    # -----------------------------------------------------
+
+    worksheet.page_setup.orientation = "landscape"
+
+    worksheet.page_setup.paperSize = (
+        worksheet.PAPERSIZE_A4
+    )
+
+    worksheet.page_setup.fitToWidth = 1
+    worksheet.page_setup.fitToHeight = 0
+
+    worksheet.sheet_properties.pageSetUpPr.fitToPage = True
+
+    worksheet.page_margins.left = 0.25
+    worksheet.page_margins.right = 0.25
+    worksheet.page_margins.top = 0.4
+    worksheet.page_margins.bottom = 0.4
+
+    # -----------------------------------------------------
+    # 樣式
+    # -----------------------------------------------------
 
     thin_gray = Side(
         style="thin",
@@ -450,10 +620,13 @@ def generate_cleaning_excel(
         fgColor="FFF7E6",
     )
 
+    # -----------------------------------------------------
     # 標題
-    ws.merge_cells("A1:G1")
+    # -----------------------------------------------------
 
-    title_cell = ws["A1"]
+    worksheet.merge_cells("A1:G1")
+
+    title_cell = worksheet["A1"]
 
     title_cell.value = (
         f"{branch_name} "
@@ -474,9 +647,12 @@ def generate_cleaning_excel(
         vertical="center",
     )
 
-    ws.row_dimensions[1].height = 30
+    worksheet.row_dimensions[1].height = 30
 
+    # -----------------------------------------------------
     # 表頭
+    # -----------------------------------------------------
+
     headers = [
         "週次",
         "項目",
@@ -487,9 +663,12 @@ def generate_cleaning_excel(
         "星期五",
     ]
 
-    for col_idx, header in enumerate(headers, start=1):
+    for col_idx, header in enumerate(
+        headers,
+        start=1,
+    ):
 
-        cell = ws.cell(
+        cell = worksheet.cell(
             row=3,
             column=col_idx,
             value=header,
@@ -510,24 +689,34 @@ def generate_cleaning_excel(
             wrap_text=True,
         )
 
-    ws.row_dimensions[3].height = 25
+    worksheet.row_dimensions[3].height = 25
 
+    # -----------------------------------------------------
     # 排班
+    # -----------------------------------------------------
+
     row_num = 4
-    days_k = ["一", "二", "三", "四", "五"]
+
+    day_keys = [
+        "一",
+        "二",
+        "三",
+        "四",
+        "五",
+    ]
 
     for _, record in schedule_df.iterrows():
 
         start_row = row_num
 
-        ws.merge_cells(
+        worksheet.merge_cells(
             start_row=start_row,
             start_column=1,
             end_row=start_row + 3,
             end_column=1,
         )
 
-        week_cell = ws.cell(
+        week_cell = worksheet.cell(
             row=start_row,
             column=1,
             value=record["週次"],
@@ -552,11 +741,13 @@ def generate_cleaning_excel(
             ("簽名", None),
         ]
 
-        for offset, (label, suffix) in enumerate(row_types):
+        for offset, (label, suffix) in enumerate(
+            row_types
+        ):
 
             current_row = start_row + offset
 
-            label_cell = ws.cell(
+            label_cell = worksheet.cell(
                 row=current_row,
                 column=2,
                 value=label,
@@ -582,16 +773,24 @@ def generate_cleaning_excel(
             elif label == "執行老師":
                 label_cell.fill = teacher_fill
 
-            for i, dk in enumerate(days_k, start=3):
+            for column_index, day_key in enumerate(
+                day_keys,
+                start=3,
+            ):
 
                 if suffix is None:
-                    value = ""
-                else:
-                    value = record[f"{dk}{suffix}"]
 
-                cell = ws.cell(
+                    value = ""
+
+                else:
+
+                    value = record[
+                        f"{day_key}{suffix}"
+                    ]
+
+                cell = worksheet.cell(
                     row=current_row,
-                    column=i,
+                    column=column_index,
                     value=value,
                 )
 
@@ -623,28 +822,53 @@ def generate_cleaning_excel(
 
                     cell.fill = teacher_fill
 
-        for r in range(start_row, start_row + 4):
-            for c in range(1, 8):
-                ws.cell(r, c).border = border
+        for r in range(
+            start_row,
+            start_row + 4,
+        ):
 
-        ws.row_dimensions[start_row].height = 24
-        ws.row_dimensions[start_row + 1].height = 70
-        ws.row_dimensions[start_row + 2].height = 28
-        ws.row_dimensions[start_row + 3].height = 38
+            for c in range(
+                1,
+                8,
+            ):
+
+                worksheet.cell(
+                    r,
+                    c,
+                ).border = border
+
+        worksheet.row_dimensions[
+            start_row
+        ].height = 24
+
+        worksheet.row_dimensions[
+            start_row + 1
+        ].height = 70
+
+        worksheet.row_dimensions[
+            start_row + 2
+        ].height = 28
+
+        worksheet.row_dimensions[
+            start_row + 3
+        ].height = 38
 
         row_num += 4
 
+    # -----------------------------------------------------
     # 備註
+    # -----------------------------------------------------
+
     notes_row = row_num + 1
 
-    ws.merge_cells(
+    worksheet.merge_cells(
         start_row=notes_row,
         start_column=1,
         end_row=notes_row,
         end_column=7,
     )
 
-    notes_cell = ws.cell(
+    notes_cell = worksheet.cell(
         row=notes_row,
         column=1,
         value=notes_text,
@@ -662,22 +886,41 @@ def generate_cleaning_excel(
     )
 
     notes_cell.border = border
-    ws.row_dimensions[notes_row].height = 38
 
+    worksheet.row_dimensions[
+        notes_row
+    ].height = 38
+
+    # -----------------------------------------------------
     # 欄寬
-    ws.column_dimensions["A"].width = 9
-    ws.column_dimensions["B"].width = 11
+    # -----------------------------------------------------
 
-    for col_letter in ["C", "D", "E", "F", "G"]:
-        ws.column_dimensions[col_letter].width = 27
+    worksheet.column_dimensions["A"].width = 9
+    worksheet.column_dimensions["B"].width = 11
 
-    ws.freeze_panes = "C4"
+    for column_letter in [
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+    ]:
 
-    ws.print_area = f"A1:G{notes_row}"
+        worksheet.column_dimensions[
+            column_letter
+        ].width = 27
 
-    ws.oddFooter.center.text = "第 &P 頁／共 &N 頁"
+    worksheet.freeze_panes = "C4"
 
-    wb.save(output)
+    worksheet.print_area = (
+        f"A1:G{notes_row}"
+    )
+
+    worksheet.oddFooter.center.text = (
+        "第 &P 頁／共 &N 頁"
+    )
+
+    workbook.save(output)
 
     output.seek(0)
 
@@ -692,18 +935,40 @@ def build_preview_html(table_records):
 
     parts = []
 
-    parts.append('<div class="cleaning-preview-wrapper">')
-    parts.append('<table class="cleaning-preview-table">')
+    parts.append(
+        '<div class="cleaning-preview-wrapper">'
+    )
+
+    parts.append(
+        '<table class="cleaning-preview-table">'
+    )
 
     parts.append("<thead>")
     parts.append("<tr>")
 
-    parts.append('<th class="week-col">週次</th>')
-    parts.append('<th class="day-col">星期一</th>')
-    parts.append('<th class="day-col">星期二</th>')
-    parts.append('<th class="day-col">星期三</th>')
-    parts.append('<th class="day-col">星期四</th>')
-    parts.append('<th class="day-col">星期五</th>')
+    parts.append(
+        '<th class="week-col">週次</th>'
+    )
+
+    parts.append(
+        '<th class="day-col">星期一</th>'
+    )
+
+    parts.append(
+        '<th class="day-col">星期二</th>'
+    )
+
+    parts.append(
+        '<th class="day-col">星期三</th>'
+    )
+
+    parts.append(
+        '<th class="day-col">星期四</th>'
+    )
+
+    parts.append(
+        '<th class="day-col">星期五</th>'
+    )
 
     parts.append("</tr>")
     parts.append("</thead>")
@@ -715,7 +980,9 @@ def build_preview_html(table_records):
 
         parts.append(
             '<td class="week-col">'
-            + html.escape(str(record["週次"]))
+            + html.escape(
+                str(record["週次"])
+            )
             + "</td>"
         )
 
@@ -733,7 +1000,9 @@ def build_preview_html(table_records):
                 str(record["老師"][i])
             )
 
-            parts.append('<td class="day-col">')
+            parts.append(
+                '<td class="day-col">'
+            )
 
             parts.append(
                 '<div class="preview-date">'
@@ -766,21 +1035,412 @@ def build_preview_html(table_records):
 
 
 # =========================================================
+# 老師管理
+# =========================================================
+
+def render_teacher_manager(
+    branch,
+    prefix,
+):
+
+    with st.expander(
+        "👥 執行老師名單管理",
+        expanded=False,
+    ):
+
+        teachers = load_teachers(branch)
+
+        # -------------------------------------------------
+        # 新增
+        # -------------------------------------------------
+
+        with st.form(
+            key=f"teacher_add_form_{prefix}",
+            clear_on_submit=True,
+        ):
+
+            new_name = st.text_input(
+                "新增老師姓名"
+            )
+
+            add_clicked = (
+                st.form_submit_button(
+                    "➕ 新增老師",
+                    use_container_width=True,
+                )
+            )
+
+            if add_clicked:
+
+                new_name = (
+                    new_name.strip()
+                )
+
+                if not new_name:
+
+                    st.warning(
+                        "請輸入老師姓名。"
+                    )
+
+                elif any(
+                    item["name"] == new_name
+                    for item in teachers
+                ):
+
+                    st.warning(
+                        "此老師已經存在。"
+                    )
+
+                else:
+
+                    next_order = (
+                        max(
+                            [
+                                item["sort_order"]
+                                for item in teachers
+                            ],
+                            default=-1,
+                        )
+                        + 1
+                    )
+
+                    (
+                        supabase
+                        .table("daycare_teachers")
+                        .insert(
+                            {
+                                "branch": branch,
+                                "name": new_name,
+                                "sort_order": next_order,
+                            }
+                        )
+                        .execute()
+                    )
+
+                    st.rerun()
+
+        # -------------------------------------------------
+        # 編輯／刪除
+        # -------------------------------------------------
+
+        for teacher in teachers:
+
+            edit_col, delete_col = (
+                st.columns([9, 1])
+            )
+
+            with edit_col:
+
+                edited_name = (
+                    st.text_input(
+                        "老師姓名",
+                        value=teacher["name"],
+                        key=(
+                            f"teacher_edit_"
+                            f"{prefix}_"
+                            f"{teacher['id']}"
+                        ),
+                        label_visibility="collapsed",
+                    )
+                )
+
+                edited_name = (
+                    edited_name.strip()
+                )
+
+                if (
+                    edited_name
+                    and
+                    edited_name
+                    != teacher["name"]
+                ):
+
+                    duplicate = any(
+                        other["name"]
+                        == edited_name
+                        and
+                        other["id"]
+                        != teacher["id"]
+                        for other in teachers
+                    )
+
+                    if duplicate:
+
+                        st.warning(
+                            f"「{edited_name}」已存在。"
+                        )
+
+                    else:
+
+                        (
+                            supabase
+                            .table("daycare_teachers")
+                            .update(
+                                {
+                                    "name": edited_name
+                                }
+                            )
+                            .eq(
+                                "id",
+                                teacher["id"],
+                            )
+                            .execute()
+                        )
+
+                        st.rerun()
+
+            with delete_col:
+
+                if st.button(
+                    "🗑️",
+                    key=(
+                        f"teacher_delete_"
+                        f"{prefix}_"
+                        f"{teacher['id']}"
+                    ),
+                    help=(
+                        f"刪除 {teacher['name']}"
+                    ),
+                    use_container_width=True,
+                ):
+
+                    if len(teachers) <= 1:
+
+                        st.warning(
+                            "至少需要保留一位老師。"
+                        )
+
+                    else:
+
+                        (
+                            supabase
+                            .table("daycare_teachers")
+                            .delete()
+                            .eq(
+                                "id",
+                                teacher["id"],
+                            )
+                            .execute()
+                        )
+
+                        st.rerun()
+
+
+# =========================================================
+# 清潔工作管理
+# =========================================================
+
+def render_task_manager(
+    branch,
+    prefix,
+):
+
+    with st.expander(
+        "🧹 清潔工作項目管理",
+        expanded=False,
+    ):
+
+        tasks = load_tasks(branch)
+
+        # -------------------------------------------------
+        # 新增
+        # -------------------------------------------------
+
+        with st.form(
+            key=f"task_add_form_{prefix}",
+            clear_on_submit=True,
+        ):
+
+            new_task = st.text_input(
+                "新增清潔工作項目"
+            )
+
+            add_clicked = (
+                st.form_submit_button(
+                    "➕ 新增工作項目",
+                    use_container_width=True,
+                )
+            )
+
+            if add_clicked:
+
+                new_task = (
+                    new_task.strip()
+                )
+
+                if not new_task:
+
+                    st.warning(
+                        "請輸入清潔工作內容。"
+                    )
+
+                elif any(
+                    item["task_name"]
+                    == new_task
+                    for item in tasks
+                ):
+
+                    st.warning(
+                        "此清潔工作已經存在。"
+                    )
+
+                else:
+
+                    next_order = (
+                        max(
+                            [
+                                item["sort_order"]
+                                for item in tasks
+                            ],
+                            default=-1,
+                        )
+                        + 1
+                    )
+
+                    (
+                        supabase
+                        .table(
+                            "daycare_cleaning_tasks"
+                        )
+                        .insert(
+                            {
+                                "branch": branch,
+                                "task_name": new_task,
+                                "sort_order": next_order,
+                            }
+                        )
+                        .execute()
+                    )
+
+                    st.rerun()
+
+        # -------------------------------------------------
+        # 編輯／刪除
+        # -------------------------------------------------
+
+        for task in tasks:
+
+            edit_col, delete_col = (
+                st.columns([9, 1])
+            )
+
+            with edit_col:
+
+                edited_task = (
+                    st.text_input(
+                        "工作項目",
+                        value=task["task_name"],
+                        key=(
+                            f"task_edit_"
+                            f"{prefix}_"
+                            f"{task['id']}"
+                        ),
+                        label_visibility="collapsed",
+                    )
+                )
+
+                edited_task = (
+                    edited_task.strip()
+                )
+
+                if (
+                    edited_task
+                    and
+                    edited_task
+                    != task["task_name"]
+                ):
+
+                    duplicate = any(
+                        other["task_name"]
+                        == edited_task
+                        and
+                        other["id"]
+                        != task["id"]
+                        for other in tasks
+                    )
+
+                    if duplicate:
+
+                        st.warning(
+                            "此清潔工作已存在。"
+                        )
+
+                    else:
+
+                        (
+                            supabase
+                            .table(
+                                "daycare_cleaning_tasks"
+                            )
+                            .update(
+                                {
+                                    "task_name": (
+                                        edited_task
+                                    )
+                                }
+                            )
+                            .eq(
+                                "id",
+                                task["id"],
+                            )
+                            .execute()
+                        )
+
+                        st.rerun()
+
+            with delete_col:
+
+                if st.button(
+                    "🗑️",
+                    key=(
+                        f"task_delete_"
+                        f"{prefix}_"
+                        f"{task['id']}"
+                    ),
+                    help="刪除此清潔項目",
+                    use_container_width=True,
+                ):
+
+                    if len(tasks) <= 1:
+
+                        st.warning(
+                            "至少需要保留一個清潔工作項目。"
+                        )
+
+                    else:
+
+                        (
+                            supabase
+                            .table(
+                                "daycare_cleaning_tasks"
+                            )
+                            .delete()
+                            .eq(
+                                "id",
+                                task["id"],
+                            )
+                            .execute()
+                        )
+
+                        st.rerun()
+
+
+# =========================================================
 # 標題
 # =========================================================
 
 st.title(
-    "🏫 澳森托嬰中心 月清潔輪值與表單管理系統"
+    "🏫 澳森托嬰中心 月清潔輪值表"
 )
 
 st.caption(
-    "澳森／澳森文德雙分園｜"
-    "月清潔排班｜即時預覽｜Excel 匯出"
+    "☁️ Supabase 永久儲存版｜"
+    "老師、清潔項目、備註與歷史排班皆永久保存"
 )
 
 
 # =========================================================
-# 分園 Tabs
+# Tabs
 # =========================================================
 
 tab_a, tab_b = st.tabs(
@@ -795,7 +1455,52 @@ tab_a, tab_b = st.tabs(
 # 分園主畫面
 # =========================================================
 
-def render_branch_tab(branch_name, prefix):
+def render_branch_tab(
+    branch_name,
+    prefix,
+):
+
+    # -----------------------------------------------------
+    # 讀取永久資料
+    # -----------------------------------------------------
+
+    teacher_rows = (
+        load_teachers(
+            branch_name
+        )
+    )
+
+    task_rows = (
+        load_tasks(
+            branch_name
+        )
+    )
+
+    setting = (
+        load_settings(
+            branch_name
+        )
+    )
+
+    teacher_pool = [
+        item["name"]
+        for item in teacher_rows
+    ]
+
+    current_tasks = [
+        item["task_name"]
+        for item in task_rows
+    ]
+
+    if not teacher_pool:
+
+        teacher_pool = ["主任"]
+
+    if not current_tasks:
+
+        current_tasks = [
+            "一般清潔"
+        ]
 
     # =====================================================
     # 基本設定
@@ -805,8 +1510,10 @@ def render_branch_tab(branch_name, prefix):
         f"📌 {branch_name}｜基本設定"
     )
 
-    col1, col2, col3 = st.columns(
-        [1, 1, 1.4]
+    col1, col2, col3 = (
+        st.columns(
+            [1, 1, 1.4]
+        )
     )
 
     with col1:
@@ -824,10 +1531,15 @@ def render_branch_tab(branch_name, prefix):
 
         month = st.selectbox(
             "月份",
-            options=list(range(1, 13)),
+            options=list(
+                range(1, 13)
+            ),
             index=8,
             key=f"month_{prefix}",
         )
+
+    # 先建立變數
+    save_clicked = False
 
     with col3:
 
@@ -837,266 +1549,35 @@ def render_branch_tab(branch_name, prefix):
         )
 
         save_clicked = st.button(
-            "💾 儲存目前排班",
-            key=f"save_history_{prefix}",
+            "💾 永久儲存目前排班",
+            key=(
+                f"save_history_"
+                f"{prefix}"
+            ),
             use_container_width=True,
         )
 
     # =====================================================
-    # 名單與工作項目管理
+    # 老師／工作項目管理
     # =====================================================
 
-    manage_teacher_col, manage_task_col = st.columns(2)
+    manager_left, manager_right = (
+        st.columns(2)
+    )
 
-    # -----------------------------------------------------
-    # 老師名單
-    # -----------------------------------------------------
+    with manager_left:
 
-    with manage_teacher_col:
+        render_teacher_manager(
+            branch_name,
+            prefix,
+        )
 
-        with st.expander(
-            "👥 執行老師名單管理",
-            expanded=False,
-        ):
+    with manager_right:
 
-            teacher_list = st.session_state[
-                f"teachers_{prefix}"
-            ]
-
-            # 新增老師
-            with st.form(
-                key=f"add_teacher_form_{prefix}",
-                clear_on_submit=True,
-            ):
-
-                new_teacher = st.text_input(
-                    "新增老師姓名"
-                )
-
-                add_teacher_clicked = (
-                    st.form_submit_button(
-                        "➕ 新增老師"
-                    )
-                )
-
-                if (
-                    add_teacher_clicked
-                    and new_teacher.strip()
-                ):
-
-                    new_teacher_name = (
-                        new_teacher.strip()
-                    )
-
-                    if (
-                        new_teacher_name
-                        in teacher_list
-                    ):
-
-                        st.warning(
-                            "⚠️ 此老師姓名已存在"
-                        )
-
-                    else:
-
-                        st.session_state[
-                            f"teachers_{prefix}"
-                        ].append(
-                            new_teacher_name
-                        )
-
-                        st.rerun()
-
-            # 編輯／刪除
-            updated_teachers = []
-
-            for teacher_index, teacher in enumerate(
-                teacher_list
-            ):
-
-                edit_col, delete_col = (
-                    st.columns([9, 1])
-                )
-
-                with edit_col:
-
-                    edited_teacher = (
-                        st.text_input(
-                            f"老師{teacher_index}",
-                            value=teacher,
-                            key=(
-                                f"teacher_edit_"
-                                f"{prefix}_"
-                                f"{teacher_index}"
-                            ),
-                            label_visibility="collapsed",
-                        )
-                    )
-
-                    if edited_teacher.strip():
-
-                        updated_teachers.append(
-                            edited_teacher.strip()
-                        )
-
-                with delete_col:
-
-                    if st.button(
-                        "🗑️",
-                        key=(
-                            f"teacher_delete_"
-                            f"{prefix}_"
-                            f"{teacher_index}"
-                        ),
-                        help="刪除此老師",
-                        use_container_width=True,
-                    ):
-
-                        if len(teacher_list) <= 1:
-
-                            st.warning(
-                                "⚠️ 至少需要保留一位老師"
-                            )
-
-                        else:
-
-                            teacher_list.pop(
-                                teacher_index
-                            )
-
-                            st.session_state[
-                                f"teachers_{prefix}"
-                            ] = teacher_list
-
-                            st.rerun()
-
-            # 儲存編輯後資料
-            if updated_teachers:
-
-                clean_teacher_list = []
-
-                for name in updated_teachers:
-
-                    if name not in clean_teacher_list:
-
-                        clean_teacher_list.append(
-                            name
-                        )
-
-                if clean_teacher_list:
-
-                    st.session_state[
-                        f"teachers_{prefix}"
-                    ] = clean_teacher_list
-
-    # -----------------------------------------------------
-    # 清潔工作
-    # -----------------------------------------------------
-
-    with manage_task_col:
-
-        with st.expander(
-            "🧹 清潔工作項目管理",
-            expanded=False,
-        ):
-
-            task_list = st.session_state[
-                f"tasks_{prefix}"
-            ]
-
-            with st.form(
-                key=f"add_task_form_{prefix}",
-                clear_on_submit=True,
-            ):
-
-                new_task = st.text_input(
-                    "新增清潔工作項目"
-                )
-
-                add_task_clicked = (
-                    st.form_submit_button(
-                        "➕ 新增工作項目"
-                    )
-                )
-
-                if (
-                    add_task_clicked
-                    and new_task.strip()
-                ):
-
-                    st.session_state[
-                        f"tasks_{prefix}"
-                    ].append(
-                        new_task.strip()
-                    )
-
-                    st.rerun()
-
-            updated_tasks = []
-
-            for task_index, task in enumerate(
-                task_list
-            ):
-
-                edit_col, delete_col = (
-                    st.columns([9, 1])
-                )
-
-                with edit_col:
-
-                    edited_task = st.text_input(
-                        f"工作項目{task_index}",
-                        value=task,
-                        key=(
-                            f"task_edit_"
-                            f"{prefix}_"
-                            f"{task_index}"
-                        ),
-                        label_visibility="collapsed",
-                    )
-
-                    if edited_task.strip():
-
-                        updated_tasks.append(
-                            edited_task.strip()
-                        )
-
-                with delete_col:
-
-                    if st.button(
-                        "🗑️",
-                        key=(
-                            f"task_delete_"
-                            f"{prefix}_"
-                            f"{task_index}"
-                        ),
-                        help="刪除此項目",
-                        use_container_width=True,
-                    ):
-
-                        if len(task_list) <= 1:
-
-                            st.warning(
-                                "⚠️ 至少需要保留一個工作項目"
-                            )
-
-                        else:
-
-                            task_list.pop(
-                                task_index
-                            )
-
-                            st.session_state[
-                                f"tasks_{prefix}"
-                            ] = task_list
-
-                            st.rerun()
-
-            if updated_tasks:
-
-                st.session_state[
-                    f"tasks_{prefix}"
-                ] = updated_tasks
+        render_task_manager(
+            branch_name,
+            prefix,
+        )
 
     st.divider()
 
@@ -1104,22 +1585,31 @@ def render_branch_tab(branch_name, prefix):
     # 月曆
     # =====================================================
 
-    year_ad = int(year_roc) + 1911
-
-    tw_holidays = holidays.Taiwan(
-        years=year_ad
+    year_ad = (
+        int(year_roc)
+        + 1911
     )
 
-    month_calendar = calendar.monthcalendar(
-        year_ad,
-        int(month),
+    tw_holidays = (
+        holidays.Taiwan(
+            years=year_ad
+        )
+    )
+
+    month_calendar = (
+        calendar.monthcalendar(
+            year_ad,
+            int(month),
+        )
     )
 
     work_weeks = []
 
     for week in month_calendar:
 
-        weekday_part = week[:5]
+        weekday_part = (
+            week[:5]
+        )
 
         if any(
             day > 0
@@ -1135,20 +1625,6 @@ def render_branch_tab(branch_name, prefix):
         f"{year_roc} 年 "
         f"{month} 月清潔輪值"
     )
-
-    teacher_pool = st.session_state[
-        f"teachers_{prefix}"
-    ]
-
-    if not teacher_pool:
-        teacher_pool = ["主任"]
-
-    current_tasks = st.session_state[
-        f"tasks_{prefix}"
-    ]
-
-    if not current_tasks:
-        current_tasks = ["一般清潔"]
 
     table_records = []
 
@@ -1179,9 +1655,11 @@ def render_branch_tab(branch_name, prefix):
         work_weeks
     ):
 
-        week_name = week_names[
-            week_index
-        ]
+        week_name = (
+            week_names[
+                week_index
+            ]
+        )
 
         with st.expander(
             f"📌 {week_name}",
@@ -1192,19 +1670,27 @@ def render_branch_tab(branch_name, prefix):
             row_tasks = []
             row_teachers = []
 
-            columns = st.columns(5)
+            columns = (
+                st.columns(5)
+            )
 
             # =================================================
             # 每天
             # =================================================
 
-            for day_index, day_number in enumerate(
-                week
-            ):
+            for (
+                day_index,
+                day_number,
+            ) in enumerate(week):
 
-                with columns[day_index]:
+                with columns[
+                    day_index
+                ]:
 
+                    # -----------------------------------------
                     # 日期
+                    # -----------------------------------------
+
                     if day_number > 0:
 
                         target_date = (
@@ -1223,7 +1709,8 @@ def render_branch_tab(branch_name, prefix):
                         )
 
                         date_str = (
-                            f"{month}/{day_number}"
+                            f"{month}/"
+                            f"{day_number}"
                         )
 
                         if (
@@ -1243,12 +1730,17 @@ def render_branch_tab(branch_name, prefix):
 
                         date_str = "－"
 
-                    # 星期＋日期
+                    # -----------------------------------------
+                    # 星期
+                    # -----------------------------------------
+
                     day_header_html = (
                         '<div class="day-header">'
                         '<span class="day-name">'
                         + html.escape(
-                            day_names[day_index]
+                            day_names[
+                                day_index
+                            ]
                         )
                         + "</span>"
                         '<span class="day-date">'
@@ -1264,16 +1756,15 @@ def render_branch_tab(branch_name, prefix):
                         unsafe_allow_html=True,
                     )
 
+                    # =========================================
                     # 月份外
+                    # =========================================
+
                     if day_number == 0:
 
                         chosen_task = (
                             st.selectbox(
-                                (
-                                    "空白工作"
-                                    f"{week_index}"
-                                    f"{day_index}"
-                                ),
+                                "空白工作",
                                 options=["無"],
                                 index=0,
                                 key=(
@@ -1291,11 +1782,7 @@ def render_branch_tab(branch_name, prefix):
 
                         chosen_teacher = (
                             st.selectbox(
-                                (
-                                    "空白老師"
-                                    f"{week_index}"
-                                    f"{day_index}"
-                                ),
+                                "空白老師",
                                 options=["無"],
                                 index=0,
                                 key=(
@@ -1311,20 +1798,26 @@ def render_branch_tab(branch_name, prefix):
                             )
                         )
 
+                    # =========================================
                     # 有日期
+                    # =========================================
+
                     else:
 
                         default_task = (
                             current_tasks[
                                 task_rotation_index
-                                % len(current_tasks)
+                                % len(
+                                    current_tasks
+                                )
                             ]
                         )
 
-                        # 第二、四週星期二：清點備品
+                        # 第二、四週星期二
                         if (
                             day_index == 1
-                            and (
+                            and
+                            (
                                 week_index + 1
                                 in [2, 4]
                             )
@@ -1332,47 +1825,59 @@ def render_branch_tab(branch_name, prefix):
 
                             matches = [
                                 task
-                                for task in current_tasks
-                                if "清點備品" in task
+                                for task
+                                in current_tasks
+                                if "清點備品"
+                                in task
                             ]
 
                             if matches:
-                                default_task = matches[0]
+
+                                default_task = (
+                                    matches[0]
+                                )
 
                         # 星期五
-                        elif day_index == 4:
+                        elif (
+                            day_index == 4
+                        ):
 
                             matches = [
                                 task
-                                for task in current_tasks
+                                for task
+                                in current_tasks
                                 if (
-                                    "掃地機器人" in task
-                                    or "戶外掃落葉" in task
-                                    or "規劃戶外活動" in task
+                                    "掃地機器人"
+                                    in task
+                                    or
+                                    "戶外掃落葉"
+                                    in task
+                                    or
+                                    "規劃戶外活動"
+                                    in task
                                 )
                             ]
 
                             if matches:
-                                default_task = matches[0]
+
+                                default_task = (
+                                    matches[0]
+                                )
 
                         else:
 
                             task_rotation_index += 1
 
-                        # 工作
                         chosen_task = (
                             st.selectbox(
-                                (
-                                    "工作"
-                                    f"{week_index}"
-                                    f"{day_index}"
-                                ),
+                                "工作",
                                 options=current_tasks,
                                 index=(
                                     current_tasks.index(
                                         default_task
                                     )
-                                    if default_task
+                                    if
+                                    default_task
                                     in current_tasks
                                     else 0
                                 ),
@@ -1388,7 +1893,10 @@ def render_branch_tab(branch_name, prefix):
                             )
                         )
 
-                        # 預設老師
+                        # -------------------------------------
+                        # 老師輪值
+                        # -------------------------------------
+
                         default_teacher_index = (
                             (
                                 week_index * 5
@@ -1405,14 +1913,9 @@ def render_branch_tab(branch_name, prefix):
                             ]
                         )
 
-                        # 老師
                         chosen_teacher = (
                             st.selectbox(
-                                (
-                                    "老師"
-                                    f"{week_index}"
-                                    f"{day_index}"
-                                ),
+                                "老師",
                                 options=teacher_pool,
                                 index=(
                                     teacher_pool.index(
@@ -1453,29 +1956,80 @@ def render_branch_tab(branch_name, prefix):
             )
 
     # =====================================================
-    # 備註
+    # 備註永久儲存
     # =====================================================
 
     st.markdown(
         "#### 📝 備註"
     )
 
+    current_notes = (
+        setting["notes"]
+        if setting
+        and setting.get("notes")
+        else DEFAULT_NOTES
+    )
+
     notes = st.text_area(
         "備註",
-        value=st.session_state[
-            f"notes_{prefix}"
-        ],
+        value=current_notes,
         height=70,
-        key=f"notes_{prefix}_area",
+        key=(
+            f"notes_area_"
+            f"{prefix}"
+        ),
         label_visibility="collapsed",
     )
 
-    st.session_state[
-        f"notes_{prefix}"
-    ] = notes
+    if (
+        notes
+        != current_notes
+    ):
+
+        if setting:
+
+            (
+                supabase
+                .table(
+                    "daycare_settings"
+                )
+                .update(
+                    {
+                        "notes": notes,
+                        "updated_at": (
+                            datetime.datetime.now(
+                                datetime.timezone.utc
+                            ).isoformat()
+                        ),
+                    }
+                )
+                .eq(
+                    "id",
+                    setting["id"],
+                )
+                .execute()
+            )
+
+        else:
+
+            (
+                supabase
+                .table(
+                    "daycare_settings"
+                )
+                .insert(
+                    {
+                        "branch": (
+                            branch_name
+                        ),
+                        "notes": notes,
+                    }
+                )
+                .execute()
+            )
 
     # =====================================================
-    # DataFrame
+    # 轉 DataFrame
     # =====================================================
 
     export_rows = []
@@ -1491,69 +2045,106 @@ def render_branch_tab(branch_name, prefix):
     for record in table_records:
 
         row_dict = {
-            "週次": record["週次"]
+            "週次": (
+                record["週次"]
+            )
         }
 
-        for i, day_key in enumerate(
+        for (
+            i,
+            day_key,
+        ) in enumerate(
             day_keys
         ):
 
             row_dict[
                 f"{day_key}_0"
-            ] = record["日期"][i]
+            ] = record[
+                "日期"
+            ][i]
 
             row_dict[
                 f"{day_key}_1"
-            ] = record["內容"][i]
+            ] = record[
+                "內容"
+            ][i]
 
             row_dict[
                 f"{day_key}_2"
-            ] = record["老師"][i]
+            ] = record[
+                "老師"
+            ][i]
 
         export_rows.append(
             row_dict
         )
 
-    final_df = pd.DataFrame(
-        export_rows
+    final_df = (
+        pd.DataFrame(
+            export_rows
+        )
     )
 
     # =====================================================
-    # 儲存歷史
+    # 永久儲存目前排班
     # =====================================================
 
     if save_clicked:
 
-        history_item = {
-            "title": (
-                f"{year_roc}年"
-                f"{month}月 清潔輪值表"
-            ),
-            "timestamp": (
-                datetime.datetime.now()
-                .strftime(
-                    "%Y-%m-%d %H:%M"
+        try:
+
+            schedule_json = (
+                final_df.to_dict(
+                    orient="records"
                 )
-            ),
-            "branch_name": branch_name,
-            "year_roc": int(year_roc),
-            "month": int(month),
-            "df": final_df.copy(),
-            "notes": notes,
-        }
+            )
 
-        st.session_state[
-            f"history_{prefix}"
-        ].append(
-            history_item
-        )
+            title = (
+                f"{year_roc}年"
+                f"{month}月 "
+                "清潔輪值表"
+            )
 
-        st.success(
-            "✅ 已儲存目前排班"
-        )
+            (
+                supabase
+                .table(
+                    "daycare_schedule_history"
+                )
+                .insert(
+                    {
+                        "branch": (
+                            branch_name
+                        ),
+                        "year_roc": (
+                            int(year_roc)
+                        ),
+                        "month": (
+                            int(month)
+                        ),
+                        "title": title,
+                        "schedule_data": (
+                            schedule_json
+                        ),
+                        "notes": notes,
+                    }
+                )
+                .execute()
+            )
+
+            st.success(
+                "✅ 已永久儲存目前排班。"
+            )
+
+        except Exception as error:
+
+            st.error(
+                "❌ 排班永久儲存失敗。"
+            )
+
+            st.exception(error)
 
     # =====================================================
-    # 預覽
+    # 即時預覽
     # =====================================================
 
     st.divider()
@@ -1580,17 +2171,26 @@ def render_branch_tab(branch_name, prefix):
     st.divider()
 
     st.subheader(
-        f"📥 匯出 {branch_name} Excel"
+        f"📥 匯出 "
+        f"{branch_name} Excel"
     )
 
     try:
 
         excel_data = (
             generate_cleaning_excel(
-                branch_name=branch_name,
-                year_roc=int(year_roc),
-                month=int(month),
-                schedule_df=final_df,
+                branch_name=(
+                    branch_name
+                ),
+                year_roc=(
+                    int(year_roc)
+                ),
+                month=(
+                    int(month)
+                ),
+                schedule_df=(
+                    final_df
+                ),
                 notes_text=notes,
             )
         )
@@ -1628,175 +2228,293 @@ def render_branch_tab(branch_name, prefix):
     except Exception as error:
 
         st.error(
-            "❌ Excel 產生失敗"
+            "❌ Excel 產生失敗。"
         )
 
-        st.exception(
-            error
-        )
+        st.exception(error)
 
     # =====================================================
-    # 歷史紀錄
+    # 永久歷史紀錄
     # =====================================================
 
     st.divider()
 
     st.subheader(
-        f"📂 歷史紀錄｜{branch_name}"
+        f"📂 永久歷史紀錄｜"
+        f"{branch_name}"
     )
 
-    history_list = (
-        st.session_state[
-            f"history_{prefix}"
-        ]
-    )
+    try:
+
+        history_list = (
+            load_history(
+                branch_name
+            )
+        )
+
+    except Exception as error:
+
+        st.error(
+            "❌ 無法讀取歷史紀錄。"
+        )
+
+        st.exception(error)
+
+        history_list = []
 
     if not history_list:
 
         st.info(
-            "目前尚無歷史紀錄。"
+            "目前尚無永久歷史紀錄。"
         )
 
     else:
 
-        history_reverse = list(
-            reversed(
-                history_list
-            )
-        )
+        for history in history_list:
 
-        for history_index, history in enumerate(
-            history_reverse
-        ):
+            created_at = (
+                str(
+                    history.get(
+                        "created_at",
+                        "",
+                    )
+                )
+            )
+
+            display_time = (
+                created_at
+                .replace(
+                    "T",
+                    " ",
+                )[:16]
+            )
 
             with st.expander(
                 (
                     "📜 "
-                    f"[{history['timestamp']}] "
-                    f"{history['title']}"
+                    f"{history['title']} "
+                    f"｜{display_time}"
                 ),
                 expanded=False,
             ):
 
+                history_notes = (
+                    history.get(
+                        "notes",
+                        "",
+                    )
+                    or ""
+                )
+
                 st.markdown(
                     "**備註：** "
                     + html.escape(
-                        str(
-                            history[
-                                "notes"
-                            ]
-                        )
+                        history_notes
                     )
                 )
 
+                history_data = (
+                    history.get(
+                        "schedule_data",
+                        [],
+                    )
+                    or []
+                )
+
+                history_df = (
+                    pd.DataFrame(
+                        history_data
+                    )
+                )
+
+                # -----------------------------------------
+                # 歷史預覽
+                # -----------------------------------------
+
                 history_records = []
 
-                for _, history_row in (
-                    history["df"].iterrows()
-                ):
+                for (
+                    _,
+                    history_row,
+                ) in history_df.iterrows():
 
                     history_records.append(
                         {
-                            "週次": history_row[
-                                "週次"
-                            ],
+                            "週次": (
+                                history_row[
+                                    "週次"
+                                ]
+                            ),
 
                             "日期": [
-                                history_row["一_0"],
-                                history_row["二_0"],
-                                history_row["三_0"],
-                                history_row["四_0"],
-                                history_row["五_0"],
+                                history_row[
+                                    "一_0"
+                                ],
+                                history_row[
+                                    "二_0"
+                                ],
+                                history_row[
+                                    "三_0"
+                                ],
+                                history_row[
+                                    "四_0"
+                                ],
+                                history_row[
+                                    "五_0"
+                                ],
                             ],
 
                             "內容": [
-                                history_row["一_1"],
-                                history_row["二_1"],
-                                history_row["三_1"],
-                                history_row["四_1"],
-                                history_row["五_1"],
+                                history_row[
+                                    "一_1"
+                                ],
+                                history_row[
+                                    "二_1"
+                                ],
+                                history_row[
+                                    "三_1"
+                                ],
+                                history_row[
+                                    "四_1"
+                                ],
+                                history_row[
+                                    "五_1"
+                                ],
                             ],
 
                             "老師": [
-                                history_row["一_2"],
-                                history_row["二_2"],
-                                history_row["三_2"],
-                                history_row["四_2"],
-                                history_row["五_2"],
+                                history_row[
+                                    "一_2"
+                                ],
+                                history_row[
+                                    "二_2"
+                                ],
+                                history_row[
+                                    "三_2"
+                                ],
+                                history_row[
+                                    "四_2"
+                                ],
+                                history_row[
+                                    "五_2"
+                                ],
                             ],
                         }
                     )
 
-                history_html = (
-                    build_preview_html(
-                        history_records
-                    )
-                )
+                if history_records:
 
-                st.markdown(
-                    history_html,
-                    unsafe_allow_html=True,
-                )
+                    st.markdown(
+                        build_preview_html(
+                            history_records
+                        ),
+                        unsafe_allow_html=True,
+                    )
+
+                # -----------------------------------------
+                # 歷史 Excel
+                # -----------------------------------------
 
                 try:
 
                     history_excel = (
                         generate_cleaning_excel(
-                            branch_name=history.get(
-                                "branch_name",
-                                branch_name,
+                            branch_name=(
+                                branch_name
                             ),
-                            year_roc=history.get(
-                                "year_roc",
-                                int(year_roc),
+                            year_roc=(
+                                int(
+                                    history[
+                                        "year_roc"
+                                    ]
+                                )
                             ),
-                            month=history.get(
-                                "month",
-                                int(month),
+                            month=(
+                                int(
+                                    history[
+                                        "month"
+                                    ]
+                                )
                             ),
-                            schedule_df=history[
-                                "df"
-                            ],
-                            notes_text=history[
-                                "notes"
-                            ],
+                            schedule_df=(
+                                history_df
+                            ),
+                            notes_text=(
+                                history_notes
+                            ),
                         )
                     )
 
-                    st.download_button(
-                        label=(
-                            "📥 下載此歷史版本"
-                        ),
-                        data=history_excel,
-                        file_name=(
-                            f"{branch_name}_"
-                            f"{history['title']}_"
-                            "歷史存檔.xlsx"
-                        ),
-                        mime=(
-                            "application/"
-                            "vnd.openxmlformats-"
-                            "officedocument."
-                            "spreadsheetml.sheet"
-                        ),
-                        key=(
-                            f"history_excel_"
-                            f"{prefix}_"
-                            f"{history_index}_"
-                            f"{history['timestamp']}"
-                        ),
-                        use_container_width=True,
+                    download_col, delete_col = (
+                        st.columns(
+                            [4, 1]
+                        )
                     )
+
+                    with download_col:
+
+                        st.download_button(
+                            label=(
+                                "📥 下載此歷史版本"
+                            ),
+                            data=history_excel,
+                            file_name=(
+                                f"{branch_name}_"
+                                f"{history['title']}_"
+                                "歷史存檔.xlsx"
+                            ),
+                            mime=(
+                                "application/"
+                                "vnd.openxmlformats-"
+                                "officedocument."
+                                "spreadsheetml.sheet"
+                            ),
+                            key=(
+                                f"history_excel_"
+                                f"{prefix}_"
+                                f"{history['id']}"
+                            ),
+                            use_container_width=True,
+                        )
+
+                    with delete_col:
+
+                        if st.button(
+                            "🗑️ 刪除",
+                            key=(
+                                f"history_delete_"
+                                f"{prefix}_"
+                                f"{history['id']}"
+                            ),
+                            help=(
+                                "永久刪除此歷史紀錄"
+                            ),
+                            use_container_width=True,
+                        ):
+
+                            (
+                                supabase
+                                .table(
+                                    "daycare_schedule_history"
+                                )
+                                .delete()
+                                .eq(
+                                    "id",
+                                    history["id"],
+                                )
+                                .execute()
+                            )
+
+                            st.rerun()
 
                 except Exception as error:
 
                     st.error(
-                        "❌ 此歷史版本 Excel 產生失敗"
+                        "❌ 此歷史版本 "
+                        "Excel 產生失敗。"
                     )
 
-                    st.exception(
-                        error
-                    )
+                    st.exception(error)
 
 
 # =========================================================
