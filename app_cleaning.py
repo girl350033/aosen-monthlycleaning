@@ -15,7 +15,7 @@ from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 # =========================================================
 
 st.set_page_config(
-    page_title="澳森托嬰中心 月清潔輪值與表單管理系統",
+    page_title="澳森托嬰中心 月清潔輪值表",
     page_icon="🏫",
     layout="wide",
 )
@@ -928,7 +928,7 @@ def render_branch_tab(branch_name, prefix):
     # =====================================================
 
     with st.expander(
-        "🧹 清潔工作項目管理",
+        "🧹 清潔工作項目管理（點開可新增、編輯及刪除）",
         expanded=False,
     ):
 
