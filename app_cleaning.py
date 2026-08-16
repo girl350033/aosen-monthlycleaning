@@ -91,15 +91,13 @@ def get_adjusted_workday(target_date, tw_holidays):
 def wrap_text_every_n(text, n=8):
     if not text:
         return ""
-    # Remove existing newlines to re-wrap cleanly every n chars
     clean_t = text.replace("\n", " ")
-    return "
-".join([clean_t[i:i+n] for i in range(0, len(clean_t), n)])
+    return "\n".join([clean_t[i:i+n] for i in range(0, len(clean_t), n)])
 
 def generate_cleaning_docx(branch_name, year_roc, month, schedule_df, notes_text):
     doc = Document()
     for section in doc.sections:
-        section.page_width = Inches(11.69) # Landscape A4
+        section.page_width = Inches(11.69)
         section.page_height = Inches(8.27)
         section.top_margin = Inches(0.3)
         section.bottom_margin = Inches(0.3)
@@ -116,7 +114,6 @@ def generate_cleaning_docx(branch_name, year_roc, month, schedule_df, notes_text
     r_title.font.bold = True
     r_title.font.color.rgb = RGBColor(0x1F, 0x49, 0x7D)
 
-    # Table rows: 4 weeks * 4 rows per week (Date, Task, Teacher, Signature) + 1 Header = 17 rows
     table = doc.add_table(rows=len(schedule_df) * 4 + 1, cols=6)
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
     set_table_borders(table, color="1F497D", sz="4")
@@ -147,8 +144,7 @@ def generate_cleaning_docx(branch_name, year_roc, month, schedule_df, notes_text
             set_cell_margins(cell_lbl, top=20, bottom=20, left=20, right=20)
             p_l = cell_lbl.paragraphs[0]
             p_l.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            r_l = p_l.add_run(f"{row['週次']}
-{label}")
+            r_l = p_l.add_run(f"{row['週次']}\n{label}")
             r_l.font.name = "微軟正黑體"
             r_l.font.size = Pt(9.5)
             r_l.font.bold = True
@@ -160,16 +156,16 @@ def generate_cleaning_docx(branch_name, year_roc, month, schedule_df, notes_text
                 cell_d.width = col_widths[d_idx + 1]
                 set_cell_margins(cell_d, top=20, bottom=20, left=20, right=20)
                 p_d = cell_d.paragraphs[0]
-                p_d.alignment = WD_ALIGN_PARAGRAPH.CENTER # 置中排版
+                p_d.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-                if sub_i == 3: # Signature row
+                if sub_i == 3:
                     val = ""
                 else:
                     val = row[f"{d_key}_{sub_i}"]
 
                 r_d = p_d.add_run(str(val) if val else "")
                 r_d.font.name = "微軟正黑體"
-                r_d.font.size = Pt(10) # 字體調整成 10 以符合單頁 A4
+                r_d.font.size = Pt(10)
 
     doc.add_paragraph().paragraph_format.space_after = Pt(2)
     note_p = doc.add_paragraph()
@@ -271,8 +267,7 @@ def render_branch_tab(branch_name, prefix):
                     else:
                         date_str = "-"
 
-                    st.markdown(f"**{days_label[d_i]}**
-`{date_str}`")
+                    st.markdown(f"**{days_label[d_i]}**\n`{date_str}`")
 
                     default_task = ""
                     if day_val > 0:
@@ -311,8 +306,7 @@ def render_branch_tab(branch_name, prefix):
         days_k = ['一', '二', '三', '四', '五']
         for i, dk in enumerate(days_k):
             row_dict[f"{dk}_0"] = rec["日期"][i]
-            # Wrap text every 8 characters for the preview table as requested
-            row_dict[f"{dk}_1"] = wrap_text_every_n(rec["內容"][i], 8)
+            row_dict[f"{dk}_1"] = rec["內容"][i]
             row_dict[f"{dk}_2"] = rec["老師"][i]
         export_df_rows.append(row_dict)
     
@@ -334,21 +328,11 @@ def render_branch_tab(branch_name, prefix):
     calendar_preview_rows = []
     for rec in table_records:
         calendar_preview_rows.append({
-            "星期一": f"{rec['日期'][0]}
-{wrap_text_every_n(rec['內容'][0], 8)}
-({rec['老師'][0]})",
-            "星期二": f"{rec['日期'][1]}
-{wrap_text_every_n(rec['內容'][1], 8)}
-({rec['老師'][1]})",
-            "星期三": f"{rec['日期'][2]}
-{wrap_text_every_n(rec['內容'][2], 8)}
-({rec['老師'][2]})",
-            "星期四": f"{rec['日期'][3]}
-{wrap_text_every_n(rec['內容'][3], 8)}
-({rec['老師'][3]})",
-            "星期五": f"{rec['日期'][4]}
-{wrap_text_every_n(rec['內容'][4], 8)}
-({rec['老師'][4]})"
+            "星期一": f"{rec['日期'][0]}\n{wrap_text_every_n(rec['內容'][0], 8)}\n({rec['老師'][0]})",
+            "星期二": f"{rec['日期'][1]}\n{wrap_text_every_n(rec['內容'][1], 8)}\n({rec['老師'][1]})",
+            "星期三": f"{rec['日期'][2]}\n{wrap_text_every_n(rec['內容'][2], 8)}\n({rec['老師'][2]})",
+            "星期四": f"{rec['日期'][3]}\n{wrap_text_every_n(rec['內容'][3], 8)}\n({rec['老師'][3]})",
+            "星期五": f"{rec['日期'][4]}\n{wrap_text_every_n(rec['內容'][4], 8)}\n({rec['老師'][4]})"
         })
     st.dataframe(pd.DataFrame(calendar_preview_rows), use_container_width=True, height=220)
 
@@ -377,21 +361,11 @@ def render_branch_tab(branch_name, prefix):
                 for idx_r, r_val in hist['df'].iterrows():
                     days_k = ['一', '二', '三', '四', '五']
                     h_cal_rows.append({
-                        "星期一": f"{r_val['一_0']}
-{r_val['一_1']}
-({r_val['一_2']})",
-                        "星期二": f"{r_val['二_0']}
-{r_val['二_1']}
-({r_val['二_2']})",
-                        "星期三": f"{r_val['三_0']}
-{r_val['三_1']}
-({r_val['三_2']})",
-                        "星期四": f"{r_val['四_0']}
-{r_val['四_1']}
-({r_val['四_2']})",
-                        "星期五": f"{r_val['五_0']}
-{r_val['五_1']}
-({r_val['五_2']})"
+                        "星期一": f"{r_val['一_0']}\n{r_val['一_1']}\n({r_val['一_2']})",
+                        "星期二": f"{r_val['二_0']}\n{r_val['二_1']}\n({r_val['二_2']})",
+                        "星期三": f"{r_val['三_0']}\n{r_val['三_1']}\n({r_val['三_2']})",
+                        "星期四": f"{r_val['四_0']}\n{r_val['四_1']}\n({r_val['四_2']})",
+                        "星期五": f"{r_val['五_0']}\n{r_val['五_1']}\n({r_val['五_2']})"
                     })
                 st.dataframe(pd.DataFrame(h_cal_rows), use_container_width=True, height=200)
                 
