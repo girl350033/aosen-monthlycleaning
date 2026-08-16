@@ -75,7 +75,7 @@ for prefix, tasks_init in [("A", DEFAULT_TASKS_A), ("B", DEFAULT_TASKS_B)]:
     if f"tasks_{prefix}" not in st.session_state:
         st.session_state[f"tasks_{prefix}"] = tasks_init
     if f"notes_{prefix}" not in st.session_state:
-        st.session_state[f"notes_{prefix}"] = "備註：請各位老師確實執行每日清潔項目，若遇請假請務必提前找職務代理人協助。"
+        st.session_state[f"notes_{prefix}"] = "備註：請各位老師確實執行清潔項目，若遇請假請務必提前找職務代理人協助。"
     if f"history_{prefix}" not in st.session_state:
         st.session_state[f"history_{prefix}"] = []
 
@@ -195,10 +195,8 @@ def render_branch_tab(branch_name, prefix):
     st.markdown("#### 🧹 清潔工作項目管理（小 Icon 卡片區）")
     st.caption("您可以新增、編輯或刪除以下清潔項目小卡：")
 
-    # 卡片式清單呈現與編輯
     task_list = st.session_state[f"tasks_{prefix}"]
     
-    # 新增工作項目表單
     with st.form(key=f"add_task_form_{prefix}", clear_on_submit=True):
         new_task_name = st.text_input("➕ 新增清潔工作項目名稱與說明：")
         submitted = st.form_submit_button("新增至項目清單")
@@ -206,7 +204,6 @@ def render_branch_tab(branch_name, prefix):
             st.session_state[f"tasks_{prefix}"].append(new_task_name.strip())
             st.rerun()
 
-    # 呈現每個工作項目的卡片 (支援刪除/編輯)
     updated_tasks = []
     for idx, t_item in enumerate(task_list):
         c_col1, c_col2, c_col3 = st.columns([0.05, 0.8, 0.15])
@@ -224,7 +221,6 @@ def render_branch_tab(branch_name, prefix):
 
     st.divider()
 
-    # 計算當月週次與假日
     year_ad = year_roc + 1911
     tw_holidays = holidays.Taiwan(years=year_ad)
     cal = calendar.monthcalendar(year_ad, month)
@@ -260,15 +256,12 @@ def render_branch_tab(branch_name, prefix):
                 else:
                     date_str = "-"
 
-                # 智慧固定邏輯：隔週二清點備品，週五掃地機器人/戶外掃落葉
                 default_task = ""
                 if day_val > 0:
                     if d_i == 1 and (idx in [2, 4]):
-                        # 尋找清點備品項目
                         match_item = [t for t in current_tasks if "清點備品" in t]
                         default_task = match_item[0] if match_item else "清點備品"
                     elif d_i == 4:
-                        # 尋找週五報表項目
                         match_item = [t for t in current_tasks if "掃地機器人" in t or "戶外掃落葉" in t or "規劃戶外活動" in t]
                         default_task = match_item[0] if match_item else current_tasks[-1]
                     else:
@@ -278,7 +271,6 @@ def render_branch_tab(branch_name, prefix):
                 st.markdown(f"**【{days_label[d_i]}】日期：`{date_str}`**")
                 col_box1, col_box2 = st.columns([3, 1])
                 with col_box1:
-                    # 這裡主任可以從現有的工作項目清單中選擇，或直接在下拉框/文字框指定
                     chosen_task = st.selectbox(f"指派工作_{idx}_{d_i}", options=current_tasks, index=current_tasks.index(default_task) if default_task in current_tasks else 0, key=f"task_{branch_name}_{idx}_{d_i}", label_visibility="collapsed")
                 with col_box2:
                     default_teacher = teacher_pool[(idx * 5 + d_i) % len(teacher_pool)]
@@ -328,23 +320,12 @@ def render_branch_tab(branch_name, prefix):
     for rec in table_records:
         preview_display_data.append({
             "週次": rec["週次"],
-            "星期一": f"日期: {rec['日期'][0]}
-內容: {rec['內容'][0]}
-老師: {rec['老師'][0]}",
-            "星期二": f"日期: {rec['日期'][1]}
-內容: {rec['內容'][1]}
-老師: {rec['老師'][1]}",
-            "星期三": f"日期: {rec['日期'][2]}
-內容: {rec['內容'][2]}
-老師: {rec['老師'][2]}",
-            "星期四": f"日期: {rec['日期'][3]}
-內容: {rec['內容'][3]}
-老師: {rec['老師'][3]}",
-            "星期五": f"日期: {rec['日期'][4]}
-內容: {rec['內容'][4]}
-老師: {rec['老師'][4]}"
+            "星期一": f"日期: {rec['日期'][0]} | 內容: {rec['內容'][0]} | 老師: {rec['老師'][0]}",
+            "星期二": f"日期: {rec['日期'][1]} | 內容: {rec['內容'][1]} | 老師: {rec['老師'][1]}",
+            "星期三": f"日期: {rec['日期'][2]} | 內容: {rec['內容'][2]} | 老師: {rec['老師'][2]}",
+            "星期四": f"日期: {rec['日期'][3]} | 內容: {rec['內容'][3]} | 老師: {rec['老師'][3]}",
+            "星期五": f"日期: {rec['日期'][4]} | 內容: {rec['內容'][4]} | 老師: {rec['老師'][4]}"
         })
-    # 設定 height 讓表格直接 fit 在畫面裡，不會超出視窗
     st.dataframe(pd.DataFrame(preview_display_data), use_container_width=True, height=250)
 
     st.divider()
@@ -372,21 +353,11 @@ def render_branch_tab(branch_name, prefix):
                 for idx_r, r_val in hist['df'].iterrows():
                     h_display.append({
                         "週次": r_val["週次"],
-                        "星期一": f"日期: {r_val['一_0']}
-內容: {r_val['一_1']}
-老師: {r_val['一_2']}",
-                        "星期二": f"日期: {r_val['二_0']}
-內容: {r_val['二_1']}
-老師: {r_val['二_2']}",
-                        "星期三": f"日期: {r_val['三_0']}
-內容: {r_val['三_1']}
-老師: {r_val['三_2']}",
-                        "星期四": f"日期: {r_val['四_0']}
-內容: {r_val['四_1']}
-老師: {r_val['四_2']}",
-                        "星期五": f"日期: {r_val['五_0']}
-內容: {r_val['五_1']}
-老師: {r_val['五_2']}"
+                        "星期一": f"日期: {r_val['一_0']} | 內容: {r_val['一_1']} | 老師: {r_val['一_2']}",
+                        "星期二": f"日期: {r_val['二_0']} | 內容: {r_val['二_1']} | 老師: {r_val['二_2']}",
+                        "星期三": f"日期: {r_val['三_0']} | 內容: {r_val['三_1']} | 老師: {r_val['三_2']}",
+                        "星期四": f"日期: {r_val['四_0']} | 內容: {r_val['四_1']} | 老師: {r_val['四_2']}",
+                        "星期五": f"日期: {r_val['五_0']} | 內容: {r_val['五_1']} | 老師: {r_val['五_2']}"
                     })
                 st.dataframe(pd.DataFrame(h_display), use_container_width=True, height=220)
                 
