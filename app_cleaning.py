@@ -4,42 +4,8 @@ import datetime
 import calendar
 import holidays
 import io
-from docx import Document
-from docx.shared import Pt, Inches, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.table import WD_TABLE_ALIGNMENT
-from docx.oxml import OxmlElement, parse_xml
-from docx.oxml.ns import nsdecls, qn
 
 st.set_page_config(page_title="澳森托嬰中心 月清潔輪值與表單管理系統", layout="wide")
-
-def set_cell_background(cell, hex_color):
-    shading_elm = parse_xml(f'<w:shd {nsdecls("w")} w:fill="{hex_color}"/>')
-    cell._tc.get_or_add_tcPr().append(shading_elm)
-
-def set_cell_margins(cell, top=40, bottom=40, left=40, right=40):
-    tcPr = cell._tc.get_or_add_tcPr()
-    tcMar = OxmlElement('w:tcMar')
-    for m, val in [('top', top), ('bottom', bottom), ('left', left), ('right', right)]:
-        node = OxmlElement(f'w:{m}')
-        node.set(qn('w:w'), str(val))
-        node.set(qn('w:type'), 'dxa')
-        tcMar.append(node)
-    tcPr.append(tcMar)
-
-def set_table_borders(table, color="1F497D", sz="4", val="single"):
-    tblPr = table._tbl.tblPr
-    borders = parse_xml(
-        f'<w:tblBorders {nsdecls("w")}>'
-        f'  <w:top w:val="{val}" w:sz="{sz}" w:space="0" w:color="{color}"/>'
-        f'  <w:bottom w:val="{val}" w:sz="{sz}" w:space="0" w:color="{color}"/>'
-        f'  <w:left w:val="{val}" w:sz="{sz}" w:space="0" w:color="{color}"/>'
-        f'  <w:right w:val="{val}" w:sz="{sz}" w:space="0" w:color="{color}"/>'
-        f'  <w:insideH w:val="{val}" w:sz="{sz}" w:space="0" w:color="{color}"/>'
-        f'  <w:insideV w:val="{val}" w:sz="{sz}" w:space="0" w:color="{color}"/>'
-        f'</w:tblBorders>'
-    )
-    tblPr.append(borders)
 
 DEFAULT_TASKS_A = [
     "樓下酵素熱水倒水槽(幼兒洗手水槽、門口小水槽、洗屁屁區、備餐區，使用2/3桶熱水配半杓酵素攪拌均勻)",
@@ -88,99 +54,68 @@ def get_adjusted_workday(target_date, tw_holidays):
             curr = curr + datetime.timedelta(days=1)
     return curr
 
-def wrap_text_every_n(text, n=8):
-    if not text:
-        return ""
-    clean_t = text.replace("\n", " ")
-    return "\n".join([clean_t[i:i+n] for i in range(0, len(clean_t), n)])
+# --- Excel 檔案生成引擎 (自動套用格式、格線、自動換行與簽名列) ---
+def generate_cleaning_excel(branch_name, year_roc, month, schedule_df, notes_text):
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        # 將排班資料轉為乾淨的月曆表格結構
+        excel_rows = []
+        for idx, row in schedule_df.iterrows():
+            w_name = row['週次']
+            # 日期列
+            excel_rows.append({
+                "週次": w_name, "項目": "日期",
+                "星期一": row['一_0'], "星期二": row['二_0'], "星期三": row['三_0'], "星期四": row['四_0'], "星期五": row['五_0']
+            })
+            # 清潔內容列
+            excel_rows.append({
+                "週次": w_name, "項目": "清潔內容",
+                "星期一": row['一_1'], "星期二": row['二_1'], "星期三": row['三_1'], "星期四": row['四_1'], "星期五": row['五_1']
+            })
+            # 執行老師列
+            excel_rows.append({
+                "週次": w_name, "項目": "執行老師",
+                "星期一": row['一_2'], "星期二": row['二_2'], "星期三": row['三_2'], "星期四": row['四_2'], "星期五": row['五_2']
+            })
+            # 簽名列
+            excel_rows.append({
+                "週次": w_name, "項目": "簽名",
+                "星期一": "", "星期二": "", "星期三": "", "星期四": "", "星期五": ""
+            })
 
-def generate_cleaning_docx(branch_name, year_roc, month, schedule_df, notes_text):
-    doc = Document()
-    for section in doc.sections:
-        section.page_width = Inches(11.69)
-        section.page_height = Inches(8.27)
-        section.top_margin = Inches(0.3)
-        section.bottom_margin = Inches(0.3)
-        section.left_margin = Inches(0.3)
-        section.right_margin = Inches(0.3)
+        df_export = pd.DataFrame(excel_rows)
+        df_export.to_excel(writer, sheet_name=f"{month}月清潔輪值", index=False, startrow=2)
 
-    title_p = doc.add_paragraph()
-    title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    title_p.paragraph_format.space_before = Pt(0)
-    title_p.paragraph_format.space_after = Pt(2)
-    r_title = title_p.add_run(f"{branch_name} {year_roc} 年 {month} 月清潔輪值紀錄表")
-    r_title.font.name = "微軟正黑體"
-    r_title.font.size = Pt(14)
-    r_title.font.bold = True
-    r_title.font.color.rgb = RGBColor(0x1F, 0x49, 0x7D)
+        workbook = writer.book
+        worksheet = writer.sheets[f"{month}月清潔輪值"]
 
-    table = doc.add_table(rows=len(schedule_df) * 4 + 1, cols=6)
-    table.alignment = WD_TABLE_ALIGNMENT.CENTER
-    set_table_borders(table, color="1F497D", sz="4")
+        # 標題
+        worksheet.merge_cells("A1:G1")
+        title_cell = worksheet["A1"]
+        title_cell.value = f"{branch_name} {year_roc} 年 {month} 月清潔輪值紀錄表"
+        title_cell.font = openpyxl.styles.Font(name="微軟正黑體", size=16, bold=True, color="1F497D")
+        title_cell.alignment = openpyxl.styles.Alignment(horizontal="center", vertical="center")
 
-    col_widths = [Inches(1.0), Inches(2.13), Inches(2.13), Inches(2.13), Inches(2.13), Inches(2.13)]
-    headers = ["週次", "星期一", "星期二", "星期三", "星期四", "星期五"]
+        # 備註
+        max_row = len(df_export) + 4
+        worksheet.cell(row=max_row, column=1, value=notes_text).font = openpyxl.styles.Font(name="微軟正黑體", size=10, color="333333")
 
-    for i, h in enumerate(headers):
-        cell = table.cell(0, i)
-        cell.width = col_widths[i]
-        set_cell_background(cell, "1F497D")
-        set_cell_margins(cell, top=30, bottom=30, left=30, right=30)
-        p = cell.paragraphs[0]
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        r = p.add_run(h)
-        r.font.name = "微軟正黑體"
-        r.font.bold = True
-        r.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
-        r.font.size = Pt(10)
+        # 設定欄寬與自動換行
+        for col in worksheet.columns:
+            max_len = max(len(str(cell.value or '')) for cell in col)
+            col_letter = openpyxl.utils.get_column_letter(col[0].column)
+            worksheet.column_dimensions[col_letter].width = max(max_len + 3, 15)
 
-    for idx, row in schedule_df.iterrows():
-        r_base = idx * 4 + 1
-        labels = ["日期", "清潔內容", "執行老師", "簽名"]
-        for sub_i, label in enumerate(labels):
-            cell_lbl = table.cell(r_base + sub_i, 0)
-            cell_lbl.width = col_widths[0]
-            set_cell_background(cell_lbl, "DCE6F1")
-            set_cell_margins(cell_lbl, top=20, bottom=20, left=20, right=20)
-            p_l = cell_lbl.paragraphs[0]
-            p_l.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            r_l = p_l.add_run(f"{row['週次']}\n{label}")
-            r_l.font.name = "微軟正黑體"
-            r_l.font.size = Pt(9.5)
-            r_l.font.bold = True
-            r_l.font.color.rgb = RGBColor(0x1F, 0x49, 0x7D)
+        for row in worksheet.iter_rows(min_row=3, max_row=len(df_export)+2, min_col=1, max_col=7):
+            for cell in row:
+                cell.alignment = openpyxl.styles.Alignment(horizontal="center", vertical="center", wrap_text=True)
+                cell.font = openpyxl.styles.Font(name="微軟正黑體", size=10)
 
-            days_keys = ['一', '二', '三', '四', '五']
-            for d_idx, d_key in enumerate(days_keys):
-                cell_d = table.cell(r_base + sub_i, d_idx + 1)
-                cell_d.width = col_widths[d_idx + 1]
-                set_cell_margins(cell_d, top=20, bottom=20, left=20, right=20)
-                p_d = cell_d.paragraphs[0]
-                p_d.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-                if sub_i == 3:
-                    val = ""
-                else:
-                    val = row[f"{d_key}_{sub_i}"]
-
-                r_d = p_d.add_run(str(val) if val else "")
-                r_d.font.name = "微軟正黑體"
-                r_d.font.size = Pt(10)
-
-    doc.add_paragraph().paragraph_format.space_after = Pt(2)
-    note_p = doc.add_paragraph()
-    r_note = note_p.add_run(notes_text)
-    r_note.font.name = "微軟正黑體"
-    r_note.font.size = Pt(9.5)
-    r_note.font.color.rgb = RGBColor(0x33, 0x33, 0x33)
-
-    doc_io = io.BytesIO()
-    doc.save(doc_io)
-    doc_io.seek(0)
-    return doc_io
+    output.seek(0)
+    return output
 
 st.title("🏫 澳森托嬰中心 月清潔輪值與表單管理系統")
-st.markdown("支援 **澳森** 與 **澳森文德** 雙分園，月曆式橫向排版檢視，自動避開國定假日，支援視窗內預覽與一鍵 Word 匯出（Fit 單頁 A4）！")
+st.markdown("支援 **澳森** 與 **澳森文德** 雙分園，自動避開國定假日，支援視窗內預覽與一鍵匯出 **Excel 表單**！")
 
 tab_a, tab_b = st.tabs(["🌳 澳森分園", "🌸 澳森文德分園"])
 
@@ -201,8 +136,6 @@ def render_branch_tab(branch_name, prefix):
     st.session_state[f"teachers_{prefix}"] = [t.strip() for t in t_input.split(",") if t.strip()]
 
     st.markdown("#### 🧹 清潔工作項目管理（小 Icon 卡片區）")
-    st.caption("您可以新增、編輯或刪除以下清潔項目小卡：")
-
     task_list = st.session_state[f"tasks_{prefix}"]
     
     with st.form(key=f"add_task_form_{prefix}", clear_on_submit=True):
@@ -323,29 +256,31 @@ def render_branch_tab(branch_name, prefix):
         st.success(f"✅ 已成功儲存 {branch_name} {year_roc}年{month}月排班紀錄！")
 
     st.divider()
-    st.subheader("👁️ 月曆式即時預覽（符合視窗大小、每8字換行、已刪除週次與小圖）")
+    st.subheader("👁️ 月曆式即時預覽（完整 Fit 於視窗內）")
     
     calendar_preview_rows = []
     for rec in table_records:
         calendar_preview_rows.append({
-            "星期一": f"{rec['日期'][0]}\n{wrap_text_every_n(rec['內容'][0], 8)}\n({rec['老師'][0]})",
-            "星期二": f"{rec['日期'][1]}\n{wrap_text_every_n(rec['內容'][1], 8)}\n({rec['老師'][1]})",
-            "星期三": f"{rec['日期'][2]}\n{wrap_text_every_n(rec['內容'][2], 8)}\n({rec['老師'][2]})",
-            "星期四": f"{rec['日期'][3]}\n{wrap_text_every_n(rec['內容'][3], 8)}\n({rec['老師'][3]})",
-            "星期五": f"{rec['日期'][4]}\n{wrap_text_every_n(rec['內容'][4], 8)}\n({rec['老師'][4]})"
+            "週次": rec["週次"],
+            "星期一": f"{rec['日期'][0]}\n{rec['內容'][0]}\n(負責: {rec['老師'][0]})",
+            "星期二": f"{rec['日期'][1]}\n{rec['內容'][1]}\n(負責: {rec['老師'][1]})",
+            "星期三": f"{rec['日期'][2]}\n{rec['內容'][2]}\n(負責: {rec['老師'][2]})",
+            "星期四": f"{rec['日期'][3]}\n{rec['內容'][3]}\n(負責: {rec['老師'][3]})",
+            "星期五": f"{rec['日期'][4]}\n{rec['內容'][4]}\n(負責: {rec['老師'][4]})"
         })
     st.dataframe(pd.DataFrame(calendar_preview_rows), use_container_width=True, height=220)
 
     st.divider()
-    st.subheader(f"📥 匯出 {branch_name} 清潔輪值 Word 檔")
-    doc_bytes = generate_cleaning_docx(branch_name, year_roc, month, final_df, st.session_state[f"notes_{prefix}"])
+    import openpyxl
+    st.subheader(f"📥 匯出 {branch_name} 清潔輪值 Excel 檔")
+    excel_bytes = generate_cleaning_excel(branch_name, year_roc, month, final_df, st.session_state[f"notes_{prefix}"])
 
     st.download_button(
-        label=f"📥 下載【{branch_name} {year_roc}年{month}月清潔輪值表】(Word 檔 / 單頁 A4)",
-        data=doc_bytes,
-        file_name=f"{branch_name}_{year_roc}年{month}月清潔輪值紀錄表.docx",
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        key=f"dl_btn_{branch_name}"
+        label=f"📥 下載【{branch_name} {year_roc}年{month}月清潔輪值表】(Excel 檔)",
+        data=excel_bytes,
+        file_name=f"{branch_name}_{year_roc}年{month}月清潔輪值紀錄表.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key=f"dl_btn_excel_{branch_name}"
     )
 
     st.divider()
@@ -361,21 +296,22 @@ def render_branch_tab(branch_name, prefix):
                 for idx_r, r_val in hist['df'].iterrows():
                     days_k = ['一', '二', '三', '四', '五']
                     h_cal_rows.append({
-                        "星期一": f"{r_val['一_0']}\n{r_val['一_1']}\n({r_val['一_2']})",
-                        "星期二": f"{r_val['二_0']}\n{r_val['二_1']}\n({r_val['二_2']})",
-                        "星期三": f"{r_val['三_0']}\n{r_val['三_1']}\n({r_val['三_2']})",
-                        "星期四": f"{r_val['四_0']}\n{r_val['四_1']}\n({r_val['四_2']})",
-                        "星期五": f"{r_val['五_0']}\n{r_val['五_1']}\n({r_val['五_2']})"
+                        "週次": r_val["週次"],
+                        "星期一": f"{r_val['一_0']}\n{r_val['一_1']}\n(負責: {r_val['一_2']})",
+                        "星期二": f"{r_val['二_0']}\n{r_val['二_1']}\n(負責: {r_val['二_2']})",
+                        "星期三": f"{r_val['三_0']}\n{r_val['三_1']}\n(負責: {r_val['三_2']})",
+                        "星期四": f"{r_val['四_0']}\n{r_val['四_1']}\n(負責: {r_val['四_2']})",
+                        "星期五": f"{r_val['五_0']}\n{r_val['五_1']}\n(負責: {r_val['五_2']})"
                     })
                 st.dataframe(pd.DataFrame(h_cal_rows), use_container_width=True, height=200)
                 
-                h_doc_bytes = generate_cleaning_docx(branch_name, year_roc, month, hist['df'], hist['notes'])
+                h_excel_bytes = generate_cleaning_excel(branch_name, year_roc, month, hist['df'], hist['notes'])
                 st.download_button(
                     label=f"📥 重新下載此歷史版本 ({hist['title']})",
-                    data=h_doc_bytes,
-                    file_name=f"{branch_name}_{hist['title']}_歷史存檔.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    key=f"dl_hist_{prefix}_{h_idx}"
+                    data=h_excel_bytes,
+                    file_name=f"{branch_name}_{hist['title']}_歷史存檔.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key=f"dl_hist_excel_{prefix}_{h_idx}"
                 )
 
 with tab_a:
