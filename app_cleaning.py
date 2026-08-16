@@ -1044,7 +1044,7 @@ def render_teacher_manager(
 ):
 
     with st.expander(
-        "👥 執行老師名單管理",
+        "👥 執行老師名單管理（點開可新增、編輯或刪除）",
         expanded=False,
     ):
 
@@ -1236,7 +1236,7 @@ def render_task_manager(
 ):
 
     with st.expander(
-        "🧹 清潔工作項目管理",
+        "🧹 清潔工作項目管理（點開可新增、編輯或刪除）",
         expanded=False,
     ):
 
