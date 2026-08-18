@@ -16,7 +16,7 @@ from supabase import create_client
 # =========================================================
 
 st.set_page_config(
-    page_title="澳森托嬰中心 月清潔輪值表",
+    page_title="托嬰中心 月清潔輪值表",
     page_icon="🏫",
     layout="wide",
 )
@@ -491,13 +491,13 @@ def initialize_branch_data(
 try:
 
     initialize_branch_data(
-        "澳森",
+        "西湖",
         DEFAULT_TEACHERS_A,
         DEFAULT_TASKS_A,
     )
 
     initialize_branch_data(
-        "澳森文德",
+        "文德",
         DEFAULT_TEACHERS_B,
         DEFAULT_TASKS_B,
     )
@@ -1430,7 +1430,7 @@ def render_task_manager(
 # =========================================================
 
 st.title(
-    "🏫 澳森托嬰中心 月清潔輪值表"
+    "🏫 托嬰中心 月清潔輪值表"
 )
 
 st.caption(
@@ -1445,8 +1445,8 @@ st.caption(
 
 tab_a, tab_b = st.tabs(
     [
-        "🌳 澳森分園",
-        "🌸 澳森文德分園",
+        "🌳 西湖分園",
+        "🌸 文德分園",
     ]
 )
 
@@ -2518,24 +2518,24 @@ def render_branch_tab(
 
 
 # =========================================================
-# 澳森
+# 西湖
 # =========================================================
 
 with tab_a:
 
     render_branch_tab(
-        "澳森",
+        "西湖",
         "A",
     )
 
 
 # =========================================================
-# 澳森文德
+# 文德
 # =========================================================
 
 with tab_b:
 
     render_branch_tab(
-        "澳森文德",
+        "文德",
         "B",
     )
